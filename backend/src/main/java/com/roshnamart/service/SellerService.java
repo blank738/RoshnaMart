@@ -65,6 +65,7 @@ public class SellerService {
                 .pendingEarnings(pendingEarnings)
                 .averageRating(Math.round(avgRating * 10.0) / 10.0)
                 .verificationStatus(seller.getVerificationStatus().name())
+                .commissionPercentage(seller.getCommissionPercentage())
                 .build();
     }
 

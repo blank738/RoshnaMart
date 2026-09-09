@@ -23,4 +23,5 @@ public class SellerDashboardResponse {
     private BigDecimal pendingEarnings;
     private double averageRating;
     private String verificationStatus;
+    private BigDecimal commissionPercentage;
 }
