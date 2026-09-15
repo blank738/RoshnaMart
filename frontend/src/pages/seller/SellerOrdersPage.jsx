@@ -136,7 +136,7 @@ export const SellerOrdersPage = () => {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
                           <img
-                            src={item.productImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80'}
+                            src={item.productImageUrl || item.productImage || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=80'}
                             alt={item.productName}
                             className="w-10 h-10 rounded-lg object-cover border border-slate-200 flex-shrink-0"
                           />

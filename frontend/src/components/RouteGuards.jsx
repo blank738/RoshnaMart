@@ -2,16 +2,18 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const RouteLoading = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
+
 export const BuyerRoute = () => {
   const { isAuthenticated, isBuyer, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated || !isBuyer) {
@@ -26,11 +28,7 @@ export const SellerRoute = () => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated || !isSeller) {
@@ -45,11 +43,7 @@ export const AdminRoute = () => {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <RouteLoading />;
   }
 
   if (!isAuthenticated || !isAdmin) {

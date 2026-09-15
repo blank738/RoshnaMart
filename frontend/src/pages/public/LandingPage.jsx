@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  ShoppingBag, ArrowRight, ShieldCheck, Sparkles, Truck, RefreshCw, 
+import {
+  ShoppingBag, ArrowRight, ShieldCheck, Sparkles, Truck, RefreshCw,
   Store, Star, Search, CheckCircle2, Award, Zap
 } from 'lucide-react';
 import { productService } from '../../services/productService';

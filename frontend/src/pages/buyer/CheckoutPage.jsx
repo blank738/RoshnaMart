@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { orderService } from '../../services/orderService';
 import { cartService } from '../../services/cartService';
@@ -16,6 +17,7 @@ export const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { cart, refreshCart } = useCart();
+  const { user } = useAuth();
   const { showToast } = useToast();
 
   const [settings, setSettings] = useState({
@@ -36,7 +38,10 @@ export const CheckoutPage = () => {
   // New address modal state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [newAddress, setNewAddress] = useState({
+    fullName: user?.name || '',
+    phone: user?.phone || '',
     streetAddress: '',
+    addressLine: '',
     city: '',
     state: '',
     pincode: '',
@@ -116,12 +121,22 @@ export const CheckoutPage = () => {
     e.preventDefault();
     try {
       setSavingAddress(true);
-      const created = await orderService.addAddress(newAddress);
+      const payload = {
+        ...newAddress,
+        fullName: newAddress.fullName?.trim() || user?.name || 'Valued Customer',
+        phone: newAddress.phone?.trim() || user?.phone || '9999999999',
+        addressLine: newAddress.streetAddress?.trim() || newAddress.addressLine?.trim() || '',
+        streetAddress: newAddress.streetAddress?.trim() || newAddress.addressLine?.trim() || '',
+      };
+      const created = await orderService.addAddress(payload);
       setAddresses((prev) => [...prev, created]);
       setSelectedAddressId(created.id);
       setIsAddressModalOpen(false);
       setNewAddress({
+        fullName: user?.name || '',
+        phone: user?.phone || '',
         streetAddress: '',
+        addressLine: '',
         city: '',
         state: '',
         pincode: '',
@@ -270,8 +285,13 @@ export const CheckoutPage = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-800 font-semibold pt-1">
-                          {addr.streetAddress}
+                        {addr.fullName && (
+                          <p className="text-xs text-slate-900 font-bold pt-1">
+                            {addr.fullName} {addr.phone && <span className="text-slate-500 font-normal">({addr.phone})</span>}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-800 font-semibold pt-0.5">
+                          {addr.streetAddress || addr.addressLine}
                         </p>
                         <p className="text-xs text-slate-500">
                           {addr.city}, {addr.state} - {addr.pincode}
@@ -355,7 +375,7 @@ export const CheckoutPage = () => {
                 <div key={item.id} className="flex items-center justify-between text-xs gap-2">
                   <div className="flex items-center gap-2 flex-1 truncate">
                     <img
-                      src={item.productImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80'}
+                      src={item.productImageUrl || item.productImage || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=80'}
                       alt={item.productName}
                       className="w-8 h-8 rounded-lg object-cover border border-slate-200 flex-shrink-0"
                     />
@@ -439,13 +459,38 @@ export const CheckoutPage = () => {
         title="Add Delivery Address"
       >
         <form onSubmit={handleSaveAddress} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="form-label text-xs">Recipient Full Name *</label>
+              <input
+                type="text"
+                required
+                value={newAddress.fullName}
+                onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
+                placeholder="e.g. John Doe"
+                className="form-input text-xs"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label text-xs">Contact Phone *</label>
+              <input
+                type="tel"
+                required
+                value={newAddress.phone}
+                onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                placeholder="e.g. 9876543210"
+                className="form-input text-xs"
+              />
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="form-label text-xs">Street Address / House No. *</label>
             <textarea
               required
               rows={2}
               value={newAddress.streetAddress}
-              onChange={(e) => setNewAddress({ ...newAddress, streetAddress: e.target.value })}
+              onChange={(e) => setNewAddress({ ...newAddress, streetAddress: e.target.value, addressLine: e.target.value })}
               placeholder="e.g. Flat 402, Greenfield Apartments, 5th Cross"
               className="form-textarea text-xs"
             />

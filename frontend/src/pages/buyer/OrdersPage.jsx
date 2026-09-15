@@ -171,7 +171,7 @@ export const OrdersPage = () => {
                     <div key={item.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={item.productImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100'}
+                          src={item.productImageUrl || item.productImage || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=100'}
                           alt={item.productName}
                           className="w-14 h-14 rounded-xl object-cover bg-slate-100 border border-slate-200 flex-shrink-0"
                         />
@@ -209,7 +209,7 @@ export const OrdersPage = () => {
                 {/* Footer Controls */}
                 <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                   <span className="text-xs text-slate-400">
-                    Paid via <span className="font-bold text-slate-700 uppercase">{order.paymentMethod}</span>
+                    Paid via <span className="font-bold text-slate-700 uppercase">{order.paymentMethod || order.payment?.paymentMethod || 'COD'}</span>
                   </span>
 
                   <div className="flex items-center gap-2">

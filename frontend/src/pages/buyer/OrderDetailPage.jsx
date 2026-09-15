@@ -246,7 +246,7 @@ export const OrderDetailPage = () => {
               >
                 <div className="flex items-center gap-4">
                   <img
-                    src={item.productImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=120'}
+                    src={item.productImageUrl || item.productImage || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=120'}
                     alt={item.productName}
                     className="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0"
                   />
@@ -307,7 +307,12 @@ export const OrderDetailPage = () => {
                 <span className="badge badge-info text-[10px] mb-1 uppercase font-bold">
                   {order.shippingAddress.addressType || 'HOME'}
                 </span>
-                <p className="font-bold text-slate-900">{order.shippingAddress.streetAddress}</p>
+                {order.shippingAddress.fullName && (
+                  <p className="font-bold text-slate-900">
+                    {order.shippingAddress.fullName} {order.shippingAddress.phone && <span className="text-slate-500 font-normal">({order.shippingAddress.phone})</span>}
+                  </p>
+                )}
+                <p className="font-semibold text-slate-800">{order.shippingAddress.streetAddress || order.shippingAddress.addressLine}</p>
                 <p>
                   {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}
                 </p>
@@ -325,7 +330,7 @@ export const OrderDetailPage = () => {
             <div className="space-y-1.5 pt-1 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Payment Method</span>
-                <span className="font-bold text-slate-900 uppercase">{order.paymentMethod}</span>
+                <span className="font-bold text-slate-900 uppercase">{order.paymentMethod || order.payment?.paymentMethod || 'COD'}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Items Subtotal</span>

@@ -17,7 +17,10 @@ export const BuyerProfilePage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [addressForm, setAddressForm] = useState({
+    fullName: '',
+    phone: '',
     streetAddress: '',
+    addressLine: '',
     city: '',
     state: '',
     pincode: '',
@@ -47,7 +50,10 @@ export const BuyerProfilePage = () => {
   const handleOpenAdd = () => {
     setEditingAddressId(null);
     setAddressForm({
+      fullName: user?.name || '',
+      phone: user?.phone || '',
       streetAddress: '',
+      addressLine: '',
       city: '',
       state: '',
       pincode: '',
@@ -59,11 +65,15 @@ export const BuyerProfilePage = () => {
 
   const handleOpenEdit = (addr) => {
     setEditingAddressId(addr.id);
+    const addrLine = addr.streetAddress || addr.addressLine || '';
     setAddressForm({
-      streetAddress: addr.streetAddress,
-      city: addr.city,
-      state: addr.state,
-      pincode: addr.pincode,
+      fullName: addr.fullName || user?.name || '',
+      phone: addr.phone || user?.phone || '',
+      streetAddress: addrLine,
+      addressLine: addrLine,
+      city: addr.city || '',
+      state: addr.state || '',
+      pincode: addr.pincode || '',
       addressType: addr.addressType || 'HOME',
       isDefault: addr.isDefault || false,
     });
@@ -74,11 +84,18 @@ export const BuyerProfilePage = () => {
     e.preventDefault();
     try {
       setSaving(true);
+      const payload = {
+        ...addressForm,
+        fullName: addressForm.fullName?.trim() || user?.name || 'Valued Customer',
+        phone: addressForm.phone?.trim() || user?.phone || '9999999999',
+        addressLine: addressForm.streetAddress?.trim() || addressForm.addressLine?.trim() || '',
+        streetAddress: addressForm.streetAddress?.trim() || addressForm.addressLine?.trim() || '',
+      };
       if (editingAddressId) {
-        await orderService.updateAddress(editingAddressId, addressForm);
+        await orderService.updateAddress(editingAddressId, payload);
         showToast('Address updated successfully', 'success');
       } else {
-        await orderService.addAddress(addressForm);
+        await orderService.addAddress(payload);
         showToast('Address added successfully', 'success');
       }
       setModalOpen(false);
@@ -209,8 +226,13 @@ export const BuyerProfilePage = () => {
                     )}
                   </div>
 
-                  <p className="text-xs font-bold text-slate-900 pt-1">
-                    {addr.streetAddress}
+                  {addr.fullName && (
+                    <p className="text-xs font-bold text-slate-900 pt-1">
+                      {addr.fullName} {addr.phone && <span className="text-slate-500 font-normal">({addr.phone})</span>}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-800 pt-0.5">
+                    {addr.streetAddress || addr.addressLine}
                   </p>
                   <p className="text-xs text-slate-600">
                     {addr.city}, {addr.state} - {addr.pincode}
@@ -246,13 +268,38 @@ export const BuyerProfilePage = () => {
         title={editingAddressId ? 'Edit Delivery Address' : 'Add New Address'}
       >
         <form onSubmit={handleSaveAddress} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="form-label text-xs">Recipient Full Name *</label>
+              <input
+                type="text"
+                required
+                value={addressForm.fullName}
+                onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                placeholder="e.g. John Doe"
+                className="form-input text-xs"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label text-xs">Contact Phone *</label>
+              <input
+                type="tel"
+                required
+                value={addressForm.phone}
+                onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                placeholder="e.g. 9876543210"
+                className="form-input text-xs"
+              />
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="form-label text-xs">Street Address / Landmark *</label>
             <input
               type="text"
               required
               value={addressForm.streetAddress}
-              onChange={(e) => setAddressForm({ ...addressForm, streetAddress: e.target.value })}
+              onChange={(e) => setAddressForm({ ...addressForm, streetAddress: e.target.value, addressLine: e.target.value })}
               placeholder="House/Flat No., Road name, Landmark"
               className="form-input text-xs"
             />

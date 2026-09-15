@@ -249,7 +249,7 @@ export const CartPage = () => {
                         className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200"
                       >
                         <img
-                          src={item.productImageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300'}
+                          src={item.productImageUrl || item.productImage || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300'}
                           alt={item.productName}
                           className="w-full h-full object-cover"
                         />

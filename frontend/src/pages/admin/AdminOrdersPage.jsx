@@ -261,7 +261,7 @@ export const AdminOrdersPage = () => {
                 <span className="font-bold text-slate-700 block flex items-center gap-1">
                   <MapPin size={12} /> Shipping Destination
                 </span>
-                <p className="font-bold text-slate-800">{inspectedOrder.shippingAddress.streetAddress}</p>
+                <p className="font-bold text-slate-800">{inspectedOrder.shippingAddress.streetAddress || inspectedOrder.shippingAddress.addressLine}</p>
                 <p className="text-slate-500">
                   {inspectedOrder.shippingAddress.city}, {inspectedOrder.shippingAddress.state} - {inspectedOrder.shippingAddress.pincode}
                 </p>

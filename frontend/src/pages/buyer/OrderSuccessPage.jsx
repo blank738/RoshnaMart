@@ -56,7 +56,7 @@ export const OrderSuccessPage = () => {
 
             <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-200">
               <span className="text-slate-500">Payment Method</span>
-              <span className="font-bold text-slate-900 uppercase">{order.paymentMethod}</span>
+              <span className="font-bold text-slate-900 uppercase">{order.paymentMethod || order.payment?.paymentMethod || 'COD'}</span>
             </div>
 
             <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-200">
@@ -71,7 +71,12 @@ export const OrderSuccessPage = () => {
                 <span className="text-slate-400 font-semibold flex items-center gap-1">
                   <MapPin size={12} /> Shipping to:
                 </span>
-                <p className="font-bold text-slate-800">{order.shippingAddress.streetAddress}</p>
+                {order.shippingAddress.fullName && (
+                  <p className="font-bold text-slate-900">
+                    {order.shippingAddress.fullName} {order.shippingAddress.phone && <span className="text-slate-500 font-normal">({order.shippingAddress.phone})</span>}
+                  </p>
+                )}
+                <p className="font-semibold text-slate-800">{order.shippingAddress.streetAddress || order.shippingAddress.addressLine}</p>
                 <p className="text-slate-500">
                   {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}
                 </p>

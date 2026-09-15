@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { cartService } from '../services/cartService';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -8,6 +14,7 @@ const CartContext = createContext(null);
 export const CartProvider = ({ children }) => {
   const { isBuyer, isAuthenticated } = useAuth();
   const { showToast } = useToast();
+
   const [cart, setCart] = useState(null);
   const [cartLoading, setCartLoading] = useState(false);
 
@@ -16,12 +23,18 @@ export const CartProvider = ({ children }) => {
       setCart(null);
       return;
     }
+
     try {
       setCartLoading(true);
+
       const data = await cartService.getCart();
+
       setCart(data);
     } catch (err) {
-      console.error('Failed to fetch cart:', err);
+      console.error(
+        'Failed to fetch cart:',
+        err
+      );
     } finally {
       setCartLoading(false);
     }
@@ -31,49 +44,99 @@ export const CartProvider = ({ children }) => {
     refreshCart();
   }, [refreshCart]);
 
-  const addToCart = async (productId, quantity = 1) => {
+  const addToCart = async (
+    productId,
+    quantity = 1
+  ) => {
     if (!isAuthenticated) {
-      showToast('Please login as a buyer to add items to your cart', 'warning');
+      showToast(
+        'Please login as a buyer to add items to your cart',
+        'warning'
+      );
+
       return false;
     }
+
     if (!isBuyer) {
-      showToast('Only buyer accounts can purchase products', 'warning');
+      showToast(
+        'Only buyer accounts can purchase products',
+        'warning'
+      );
+
       return false;
     }
 
     try {
-      const updatedCart = await cartService.addToCart(productId, quantity);
+      const updatedCart =
+        await cartService.addToCart(
+          productId,
+          quantity
+        );
+
       setCart(updatedCart);
-      showToast('Item added to cart successfully!', 'success');
+
+      showToast(
+        'Item added to cart successfully!',
+        'success'
+      );
+
       return true;
     } catch (err) {
-      const message = err.response?.data?.message || 'Failed to add item to cart';
+      const message =
+        err.response?.data?.message ||
+        'Failed to add item to cart';
+
       showToast(message, 'error');
+
       return false;
     }
   };
 
-  const updateQuantity = async (itemId, quantity) => {
+  const updateQuantity = async (
+    itemId,
+    quantity
+  ) => {
     try {
-      const updatedCart = await cartService.updateCartItem(itemId, quantity);
+      const updatedCart =
+        await cartService.updateCartItem(
+          itemId,
+          quantity
+        );
+
       setCart(updatedCart);
+
       return true;
     } catch (err) {
-      const message = err.response?.data?.message || 'Failed to update quantity';
+      const message =
+        err.response?.data?.message ||
+        'Failed to update quantity';
+
       showToast(message, 'error');
+
       return false;
     }
   };
 
   const removeItem = async (itemId) => {
     try {
-      const updatedCart = await cartService.removeFromCart(itemId);
+      const updatedCart =
+        await cartService.removeFromCart(itemId);
+
       setCart(updatedCart);
-      showToast('Item removed from cart', 'info');
+
+      showToast(
+        'Item removed from cart',
+        'info'
+      );
+
       return true;
     } catch (err) {
-      const message = err.response?.data?.message || 'Failed to remove item';
+      const message =
+        err.response?.data?.message ||
+        'Failed to remove item';
+
       showToast(message, 'error');
+
       return false;
     }
   };
@@ -81,10 +144,23 @@ export const CartProvider = ({ children }) => {
   const clearCart = async () => {
     try {
       await cartService.clearCart();
+
       setCart(null);
-      showToast('Cart cleared', 'info');
+
+      showToast(
+        'Cart cleared',
+        'info'
+      );
     } catch (err) {
-      showToast('Failed to clear cart', 'error');
+      console.error(
+        'Failed to clear cart:',
+        err
+      );
+
+      showToast(
+        'Failed to clear cart',
+        'error'
+      );
     }
   };
 
@@ -112,8 +188,12 @@ export const CartProvider = ({ children }) => {
 
 export const useCart = () => {
   const context = useContext(CartContext);
+
   if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error(
+      'useCart must be used within a CartProvider'
+    );
   }
+
   return context;
 };

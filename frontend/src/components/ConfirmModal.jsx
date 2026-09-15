@@ -13,8 +13,19 @@ export const ConfirmModal = ({
   isDestructive = false,
   loading = false,
 }) => {
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={title}
+      maxWidth="max-w-md"
+    >
       <div className="space-y-5">
         <div className="flex items-start gap-3">
           {isDestructive && (
@@ -22,6 +33,7 @@ export const ConfirmModal = ({
               <AlertTriangle size={20} />
             </div>
           )}
+
           <p className="text-sm text-slate-600 leading-relaxed pt-1">
             {message}
           </p>
@@ -31,18 +43,20 @@ export const ConfirmModal = ({
           <button
             type="button"
             disabled={loading}
-            onClick={onClose}
-            className="btn btn-outline btn-sm font-semibold cursor-pointer"
+            onClick={handleClose}
+            className="btn btn-outline btn-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
+
           <button
             type="button"
             disabled={loading}
             onClick={onConfirm}
-            className={`btn btn-sm font-bold cursor-pointer ${
-              isDestructive ? 'btn-danger shadow-sm' : 'btn-primary shadow-sm'
-            }`}
+            className={`btn btn-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isDestructive
+                ? 'btn-danger shadow-sm'
+                : 'btn-primary shadow-sm'
+              }`}
           >
             {loading ? 'Processing...' : confirmText}
           </button>
