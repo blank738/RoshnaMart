@@ -55,6 +55,7 @@ com\roshnamart\entity\DiscountType.class
 com\roshnamart\dto\CartResponse$CartResponseBuilder.class
 com\roshnamart\repository\OrderItemRepository.class
 com\roshnamart\dto\CouponValidateResponse.class
+com\roshnamart\controller\SettingsController.class
 com\roshnamart\dto\OrderResponse.class
 com\roshnamart\dto\OrderResponse$OrderResponseBuilder.class
 com\roshnamart\repository\PaymentRepository.class
@@ -71,6 +72,7 @@ com\roshnamart\service\CartService.class
 com\roshnamart\entity\Review$ReviewBuilder.class
 com\roshnamart\repository\SellerRepository.class
 com\roshnamart\dto\UserProfileResponse$UserProfileResponseBuilder.class
+com\roshnamart\dto\BuyerRegisterRequest$BuyerRegisterRequestBuilder.class
 com\roshnamart\dto\ProductCreateUpdateRequest.class
 com\roshnamart\RoshnamartApplication.class
 com\roshnamart\repository\OrderRepository.class
@@ -106,6 +108,7 @@ com\roshnamart\config\OpenApiConfig.class
 com\roshnamart\dto\AdminDashboardResponse$AdminDashboardResponseBuilder.class
 com\roshnamart\repository\CouponRepository.class
 com\roshnamart\entity\PaymentMethod.class
+com\roshnamart\dto\CheckoutRequest$CheckoutRequestBuilder.class
 com\roshnamart\service\NotificationService.class
 com\roshnamart\entity\Review.class
 com\roshnamart\entity\Wishlist.class
@@ -116,6 +119,7 @@ com\roshnamart\dto\AddToCartRequest$AddToCartRequestBuilder.class
 com\roshnamart\repository\ProductImageRepository.class
 com\roshnamart\entity\User$UserBuilder.class
 com\roshnamart\dto\ProductResponse$ProductResponseBuilder.class
+com\roshnamart\dto\SellerRegisterRequest$SellerRegisterRequestBuilder.class
 com\roshnamart\dto\SellerDashboardResponse.class
 com\roshnamart\entity\ReturnStatus.class
 com\roshnamart\repository\AdminRepository.class
@@ -153,6 +157,7 @@ com\roshnamart\security\JwtTokenProvider.class
 com\roshnamart\service\FileUploadService.class
 com\roshnamart\entity\SellerVerificationStatus.class
 com\roshnamart\service\AdminService.class
+com\roshnamart\dto\LoginRequest$LoginRequestBuilder.class
 com\roshnamart\dto\MarketplaceSettingsDto$MarketplaceSettingsDtoBuilder.class
 com\roshnamart\controller\AdminController.class
 com\roshnamart\dto\BuyerRegisterRequest.class

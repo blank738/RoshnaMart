@@ -13,12 +13,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AddressDto {
     private Long id;
-    @NotBlank(message = "Full name is required")
     private String fullName;
-    @NotBlank(message = "Phone number is required")
     private String phone;
-    @NotBlank(message = "Address line is required")
     private String addressLine;
+    private String streetAddress;
     @NotBlank(message = "City is required")
     private String city;
     @NotBlank(message = "State is required")
@@ -28,4 +26,26 @@ public class AddressDto {
     private String country;
     private AddressType addressType;
     private Boolean isDefault;
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
+        if (this.addressLine == null || this.addressLine.isBlank()) {
+            this.addressLine = streetAddress;
+        }
+    }
+
+    public void setAddressLine(String addressLine) {
+        this.addressLine = addressLine;
+        if (this.streetAddress == null || this.streetAddress.isBlank()) {
+            this.streetAddress = addressLine;
+        }
+    }
+
+    public String getAddressLine() {
+        return addressLine != null && !addressLine.isBlank() ? addressLine : streetAddress;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress != null && !streetAddress.isBlank() ? streetAddress : addressLine;
+    }
 }

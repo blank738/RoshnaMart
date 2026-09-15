@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -16,6 +17,9 @@ public class OrderItemResponse {
     private Long productId;
     private String productName;
     private String productImage;
+    private String productImageUrl;
+    private String orderNumber;
+    private LocalDateTime createdAt;
     private Long sellerId;
     private String sellerBusinessName;
     private Integer quantity;

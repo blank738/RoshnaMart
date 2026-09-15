@@ -51,11 +51,21 @@ public class AddressService {
             }
         }
 
+        String fullName = (dto.getFullName() != null && !dto.getFullName().isBlank()) ?
+                dto.getFullName().trim() : (buyer.getUser() != null ? buyer.getUser().getName() : "Valued Customer");
+        String phone = (dto.getPhone() != null && !dto.getPhone().isBlank()) ?
+                dto.getPhone().trim() : (buyer.getUser() != null ? buyer.getUser().getPhone() : "9999999999");
+        String addressLine = (dto.getAddressLine() != null && !dto.getAddressLine().isBlank()) ?
+                dto.getAddressLine().trim() : (dto.getStreetAddress() != null ? dto.getStreetAddress().trim() : "");
+        if (addressLine.isBlank()) {
+            throw new IllegalArgumentException("Address line is required");
+        }
+
         Address address = Address.builder()
                 .buyer(buyer)
-                .fullName(dto.getFullName())
-                .phone(dto.getPhone())
-                .addressLine(dto.getAddressLine())
+                .fullName(fullName)
+                .phone(phone)
+                .addressLine(addressLine)
                 .city(dto.getCity())
                 .state(dto.getState())
                 .pincode(dto.getPincode())
@@ -91,9 +101,16 @@ public class AddressService {
             address.setIsDefault(true);
         }
 
-        address.setFullName(dto.getFullName());
-        address.setPhone(dto.getPhone());
-        address.setAddressLine(dto.getAddressLine());
+        String fullName = (dto.getFullName() != null && !dto.getFullName().isBlank()) ?
+                dto.getFullName().trim() : address.getFullName();
+        String phone = (dto.getPhone() != null && !dto.getPhone().isBlank()) ?
+                dto.getPhone().trim() : address.getPhone();
+        String addressLine = (dto.getAddressLine() != null && !dto.getAddressLine().isBlank()) ?
+                dto.getAddressLine().trim() : (dto.getStreetAddress() != null && !dto.getStreetAddress().isBlank() ? dto.getStreetAddress().trim() : address.getAddressLine());
+
+        address.setFullName(fullName);
+        address.setPhone(phone);
+        address.setAddressLine(addressLine);
         address.setCity(dto.getCity());
         address.setState(dto.getState());
         address.setPincode(dto.getPincode());

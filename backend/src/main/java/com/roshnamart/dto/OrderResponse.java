@@ -24,6 +24,7 @@ public class OrderResponse {
     private BigDecimal deliveryCharge;
     private BigDecimal finalAmount;
     private String paymentStatus;
+    private String paymentMethod;
     private String orderStatus;
     private AddressDto shippingAddress;
     private List<OrderItemResponse> items;

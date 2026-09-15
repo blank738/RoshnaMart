@@ -68,6 +68,7 @@ public class EntityDtoMapper {
                 .fullName(address.getFullName())
                 .phone(address.getPhone())
                 .addressLine(address.getAddressLine())
+                .streetAddress(address.getAddressLine())
                 .city(address.getCity())
                 .state(address.getState())
                 .pincode(address.getPincode())
@@ -84,6 +85,7 @@ public class EntityDtoMapper {
                 .productId(item.getProduct() != null ? item.getProduct().getId() : null)
                 .productName(item.getProduct() != null ? item.getProduct().getName() : null)
                 .productImage(item.getProduct() != null ? item.getProduct().getImageUrl() : null)
+                .productImageUrl(item.getProduct() != null ? item.getProduct().getImageUrl() : null)
                 .sellerId(item.getSeller() != null ? item.getSeller().getId() : null)
                 .sellerBusinessName(item.getSeller() != null ? item.getSeller().getBusinessName() : null)
                 .price(item.getPrice())
@@ -120,6 +122,9 @@ public class EntityDtoMapper {
                 .productId(item.getProduct() != null ? item.getProduct().getId() : null)
                 .productName(item.getProductName())
                 .productImage(item.getProduct() != null ? item.getProduct().getImageUrl() : null)
+                .productImageUrl(item.getProduct() != null ? item.getProduct().getImageUrl() : null)
+                .orderNumber(item.getOrder() != null ? item.getOrder().getOrderNumber() : null)
+                .createdAt(item.getOrder() != null ? item.getOrder().getCreatedAt() : null)
                 .sellerId(item.getSeller() != null ? item.getSeller().getId() : null)
                 .sellerBusinessName(item.getSeller() != null ? item.getSeller().getBusinessName() : null)
                 .quantity(item.getQuantity())
@@ -149,6 +154,11 @@ public class EntityDtoMapper {
                 order.getItems().stream().map(this::toOrderItemResponse).collect(Collectors.toList()) :
                 Collections.emptyList();
 
+        String paymentMethod = null;
+        if (order.getPayment() != null && order.getPayment().getPaymentMethod() != null) {
+            paymentMethod = order.getPayment().getPaymentMethod().name();
+        }
+
         return OrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -160,6 +170,7 @@ public class EntityDtoMapper {
                 .deliveryCharge(order.getDeliveryCharge())
                 .finalAmount(order.getFinalAmount())
                 .paymentStatus(order.getPaymentStatus() != null ? order.getPaymentStatus().name() : null)
+                .paymentMethod(paymentMethod)
                 .orderStatus(order.getOrderStatus() != null ? order.getOrderStatus().name() : null)
                 .shippingAddress(toAddressDto(order.getShippingAddress()))
                 .items(itemResponses)

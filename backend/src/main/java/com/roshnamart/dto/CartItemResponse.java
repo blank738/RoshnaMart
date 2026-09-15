@@ -16,6 +16,7 @@ public class CartItemResponse {
     private Long productId;
     private String productName;
     private String productImage;
+    private String productImageUrl;
     private Long sellerId;
     private String sellerBusinessName;
     private BigDecimal price;

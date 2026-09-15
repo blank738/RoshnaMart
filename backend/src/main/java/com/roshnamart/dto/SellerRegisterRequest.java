@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SellerRegisterRequest {
+
     @NotBlank(message = "Name is required")
     private String name;
 
@@ -32,6 +33,8 @@ public class SellerRegisterRequest {
 
     @NotBlank(message = "Business name is required")
     private String businessName;
+
+    private String taxNumber;
 
     private String businessDescription;
     private String businessEmail;
