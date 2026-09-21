@@ -12,11 +12,8 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 
 WORKDIR /build
 
-# Cache Maven dependencies layer
-COPY backend/pom.xml .
-RUN mvn dependency:go-offline -B
-
 # Copy backend source code and build JAR
+COPY backend/pom.xml .
 COPY backend/src ./src
 RUN mvn clean package -DskipTests
 
@@ -47,4 +44,4 @@ ENV SPRING_PROFILES_ACTIVE=prod \
     ROSHNAMART_UPLOAD_DIR=/app/uploads
 
 # Start the Spring Boot application
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
