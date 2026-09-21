@@ -67,7 +67,7 @@ export const SellerOrdersPage = () => {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        {['ALL', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((tab) => (
+        {['ALL', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((tab) => (
           <button
             key={tab}
             type="button"
@@ -184,6 +184,7 @@ export const SellerOrdersPage = () => {
                         >
                           <option value="PROCESSING">PROCESSING</option>
                           <option value="SHIPPED">SHIPPED</option>
+                          <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
                           <option value="DELIVERED">DELIVERED</option>
                           <option value="CANCELLED">CANCELLED</option>
                         </select>

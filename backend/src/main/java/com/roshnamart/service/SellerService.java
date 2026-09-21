@@ -8,6 +8,7 @@ import com.roshnamart.exception.InvalidOrderStateException;
 import com.roshnamart.exception.ResourceNotFoundException;
 import com.roshnamart.mapper.EntityDtoMapper;
 import com.roshnamart.repository.OrderItemRepository;
+import com.roshnamart.repository.OrderRepository;
 import com.roshnamart.repository.ProductRepository;
 import com.roshnamart.repository.SellerRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -27,6 +29,7 @@ public class SellerService {
     private final SellerRepository sellerRepository;
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderRepository orderRepository;
     private final NotificationService notificationService;
     private final EntityDtoMapper mapper;
 
@@ -98,6 +101,18 @@ public class SellerService {
         item.setItemStatus(newStatus);
         OrderItem saved = orderItemRepository.save(item);
 
+        // Synchronize parent Order status based on all its items
+        Order order = item.getOrder();
+        if (order != null) {
+            List<OrderItem> allItems = orderItemRepository.findByOrderId(order.getId());
+            OrderStatus derivedStatus = calculateDerivedOrderStatus(allItems);
+            if (derivedStatus != null && order.getOrderStatus() != derivedStatus) {
+                order.setOrderStatus(derivedStatus);
+                order.setUpdatedAt(LocalDateTime.now());
+                orderRepository.save(order);
+            }
+        }
+
         // Notify Buyer
         notificationService.sendNotification(
                 item.getOrder().getBuyer().getUser(),
@@ -107,6 +122,80 @@ public class SellerService {
         );
 
         return mapper.toOrderItemResponse(saved);
+    }
+
+    private OrderStatus calculateDerivedOrderStatus(List<OrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+
+        // Check if all items are cancelled
+        boolean allCancelled = items.stream()
+                .allMatch(i -> i.getItemStatus() == OrderItemStatus.CANCELLED);
+        if (allCancelled) {
+            return OrderStatus.CANCELLED;
+        }
+
+        // Filter active items (non-cancelled)
+        List<OrderItem> activeItems = items.stream()
+                .filter(i -> i.getItemStatus() != OrderItemStatus.CANCELLED)
+                .toList();
+
+        if (activeItems.isEmpty()) {
+            return OrderStatus.CANCELLED;
+        }
+
+        // Check if all active items are delivered (or return requested/returned/refunded)
+        boolean allDelivered = activeItems.stream()
+                .allMatch(i -> i.getItemStatus() == OrderItemStatus.DELIVERED
+                        || i.getItemStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || i.getItemStatus() == OrderItemStatus.RETURNED
+                        || i.getItemStatus() == OrderItemStatus.REFUNDED);
+        if (allDelivered) {
+            return OrderStatus.DELIVERED;
+        }
+
+        // Check if all active items are at least OUT_FOR_DELIVERY
+        boolean allOutForDelivery = activeItems.stream()
+                .allMatch(i -> i.getItemStatus() == OrderItemStatus.OUT_FOR_DELIVERY
+                        || i.getItemStatus() == OrderItemStatus.DELIVERED
+                        || i.getItemStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || i.getItemStatus() == OrderItemStatus.RETURNED
+                        || i.getItemStatus() == OrderItemStatus.REFUNDED);
+        if (allOutForDelivery) {
+            return OrderStatus.OUT_FOR_DELIVERY;
+        }
+
+        // Check if all active items are at least SHIPPED
+        boolean allShipped = activeItems.stream()
+                .allMatch(i -> i.getItemStatus() == OrderItemStatus.SHIPPED
+                        || i.getItemStatus() == OrderItemStatus.OUT_FOR_DELIVERY
+                        || i.getItemStatus() == OrderItemStatus.DELIVERED
+                        || i.getItemStatus() == OrderItemStatus.RETURN_REQUESTED
+                        || i.getItemStatus() == OrderItemStatus.RETURNED
+                        || i.getItemStatus() == OrderItemStatus.REFUNDED);
+        if (allShipped) {
+            return OrderStatus.SHIPPED;
+        }
+
+        // Check if any active item is PROCESSING or higher
+        boolean anyProcessing = activeItems.stream()
+                .anyMatch(i -> i.getItemStatus() == OrderItemStatus.PROCESSING
+                        || i.getItemStatus() == OrderItemStatus.SHIPPED
+                        || i.getItemStatus() == OrderItemStatus.OUT_FOR_DELIVERY
+                        || i.getItemStatus() == OrderItemStatus.DELIVERED);
+        if (anyProcessing) {
+            return OrderStatus.PROCESSING;
+        }
+
+        // Check if any active item is CONFIRMED
+        boolean anyConfirmed = activeItems.stream()
+                .anyMatch(i -> i.getItemStatus() == OrderItemStatus.CONFIRMED);
+        if (anyConfirmed) {
+            return OrderStatus.CONFIRMED;
+        }
+
+        return OrderStatus.PLACED;
     }
 
     @Transactional(readOnly = true)

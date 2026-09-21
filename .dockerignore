@@ -1,0 +1,9 @@
+**/.git
+**/.gitignore
+**/.idea
+**/.vscode
+**/target
+**/node_modules
+**/dist
+uploads/
+*.log

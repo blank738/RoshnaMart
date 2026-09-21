@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Package, MapPin, CreditCard, RotateCcw, XCircle, 
-  Store, Star, AlertTriangle, CheckCircle2, FileText, Clock 
+  Store, Star, AlertTriangle, CheckCircle2, FileText, Clock, RefreshCw 
 } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { OrderTimeline } from '../../components/OrderTimeline';
 import { Modal } from '../../components/Modal';
+import {
+  normalizeOrderStatus,
+  deriveStatusFromItems,
+  getStatusBadgeClass,
+  formatOrderStatus,
+} from '../../utils/orderStatus';
 
 export const OrderDetailPage = () => {
   const { id } = useParams();
@@ -18,6 +24,7 @@ export const OrderDetailPage = () => {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Cancel order modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -38,23 +45,48 @@ export const OrderDetailPage = () => {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const fetchOrder = async () => {
+  const fetchOrder = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const data = await orderService.getBuyerOrderById(id);
       setOrder(data);
     } catch (err) {
       console.error('Failed to load order:', err);
-      showToast('Order not found', 'error');
-      navigate('/buyer/orders');
+      if (!isSilent) {
+        showToast('Order not found', 'error');
+        navigate('/buyer/orders');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    try {
+      setRefreshing(true);
+      const data = await orderService.getBuyerOrderById(id);
+      setOrder(data);
+      showToast('Order status refreshed', 'info');
+    } catch (err) {
+      console.error('Failed to refresh order:', err);
+      showToast('Could not refresh status', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchOrder();
-  }, [id]);
+
+    // Auto-poll active orders every 10 seconds so seller/admin status changes reflect automatically
+    const interval = setInterval(() => {
+      if (order && !['DELIVERED', 'CANCELLED', 'RETURNED', 'REFUNDED'].includes(order.orderStatus)) {
+        fetchOrder(true);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [id, order?.orderStatus]);
 
   const handleCancelOrder = async () => {
     try {
@@ -132,8 +164,13 @@ export const OrderDetailPage = () => {
     }
   };
 
-  const canCancel = order && (order.orderStatus === 'PLACED' || order.orderStatus === 'CONFIRMED');
-  const canReturn = order && order.orderStatus === 'DELIVERED';
+  // Robust effective status resolution (backend orderStatus with child items fallback)
+  const effectiveStatus = order
+    ? normalizeOrderStatus(order.orderStatus) || deriveStatusFromItems(order.items) || order.orderStatus
+    : 'PLACED';
+
+  const canCancel = order && (effectiveStatus === 'PLACED' || effectiveStatus === 'CONFIRMED');
+  const canReturn = order && (effectiveStatus === 'DELIVERED' || order.orderStatus === 'DELIVERED');
 
   if (loading) {
     return (
@@ -193,26 +230,56 @@ export const OrderDetailPage = () => {
         {/* Header with Reference & Dates */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
                 {order.orderNumber}
               </h1>
-              <span className="badge badge-info text-xs font-bold uppercase">
-                {order.orderStatus}
+              <span className={`badge ${getStatusBadgeClass(effectiveStatus)} text-xs font-bold uppercase`}>
+                {formatOrderStatus(effectiveStatus)}
               </span>
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={refreshing}
+                className="btn btn-outline btn-sm py-1 px-2 text-[11px] font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-1 rounded-lg border-slate-300"
+                title="Check for latest status update"
+              >
+                <RefreshCw size={12} className={refreshing ? 'animate-spin text-emerald-600' : ''} />
+                <span>{refreshing ? 'Checking...' : 'Refresh Status'}</span>
+              </button>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Placed on{' '}
-              {order.createdAt
-                ? new Date(order.createdAt).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : 'Recent'}
-            </p>
+            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1.5 flex-wrap">
+              <p>
+                Placed on{' '}
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Recent'}
+              </p>
+              {effectiveStatus === 'DELIVERED' && order.updatedAt && (
+                <>
+                  <span>•</span>
+                  <p className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 size={13} />
+                    <span>
+                      Delivered on{' '}
+                      {new Date(order.updatedAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </p>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="text-left sm:text-right">
@@ -224,11 +291,20 @@ export const OrderDetailPage = () => {
         </div>
 
         {/* Visual Fulfillment Timeline */}
-        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-2">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Order Fulfillment Progress
-          </h3>
-          <OrderTimeline currentStatus={order.orderStatus} />
+        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Order Fulfillment Progress
+            </h3>
+            <span className="text-[11px] text-slate-400 font-medium">
+              Live tracking updates
+            </span>
+          </div>
+          <OrderTimeline
+            currentStatus={effectiveStatus}
+            deliveryDate={order.updatedAt || order.createdAt}
+            items={order.items}
+          />
         </div>
 
         {/* Multi-Vendor Order Items */}
@@ -277,7 +353,7 @@ export const OrderDetailPage = () => {
                     {item.itemStatus || order.orderStatus}
                   </span>
 
-                  {order.orderStatus === 'DELIVERED' && (
+                  {(effectiveStatus === 'DELIVERED' || item.itemStatus === 'DELIVERED') && (
                     <button
                       type="button"
                       onClick={() => {

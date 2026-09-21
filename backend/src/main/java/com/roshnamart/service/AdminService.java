@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class AdminService {
     private final SellerRepository sellerRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ReturnRequestRepository returnRequestRepository;
     private final MarketplaceSettingsRepository settingsRepository;
     private final AuditLogRepository auditLogRepository;
@@ -136,7 +139,21 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
         order.setOrderStatus(status);
+        order.setUpdatedAt(LocalDateTime.now());
         Order saved = orderRepository.save(order);
+
+        // Synchronize underlying order items to match new lifecycle status
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        if (items != null) {
+            for (OrderItem item : items) {
+                if (item.getItemStatus() != OrderItemStatus.CANCELLED) {
+                    try {
+                        item.setItemStatus(OrderItemStatus.valueOf(status.name()));
+                        orderItemRepository.save(item);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
 
         logAction(admin, "ORDER_STATUS_UPDATED", "Order", orderId, "Updated order status to " + status);
         notificationService.sendNotification(

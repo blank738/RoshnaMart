@@ -125,6 +125,22 @@ npm run dev
 ```
 - Frontend starts at: `http://localhost:5173`
 
+### 5. Running with Docker (Recommended for Full Stack)
+Run the entire stack (MySQL 8 + Spring Boot Backend + React Frontend + Nginx) with a single command:
+```bash
+# Build and start all services
+docker compose up --build -d
+
+# View live container logs
+docker compose logs -f
+
+# Stop all services
+docker compose down
+```
+- Frontend (React via Nginx): `http://localhost`
+- Backend API & Swagger: `http://localhost:8080/swagger-ui.html`
+- MySQL Database: `localhost:3306`
+
 ---
 
 ## Running Verification & Tests

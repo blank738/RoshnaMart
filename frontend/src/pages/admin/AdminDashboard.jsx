@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  ShieldCheck, Users, Store, Package, ShoppingBag, DollarSign, 
-  AlertTriangle, ArrowRight, Settings, Tag, RotateCcw, FileText, CheckCircle2 
+import {
+  ShieldCheck, Users, Store, Package, ShoppingBag, DollarSign,
+  AlertTriangle, ArrowRight, Settings, Tag, RotateCcw, FileText, CheckCircle2
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 
@@ -216,11 +216,11 @@ export const AdminDashboard = () => {
                         <td className="py-3 px-4 text-slate-400">
                           {log.createdAt
                             ? new Date(log.createdAt).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
                             : ''}
                         </td>
                       </tr>

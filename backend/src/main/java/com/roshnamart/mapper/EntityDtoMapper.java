@@ -176,6 +176,7 @@ public class EntityDtoMapper {
                 .items(itemResponses)
                 .payment(toPaymentResponse(order.getPayment()))
                 .createdAt(order.getCreatedAt())
+                .updatedAt(order.getUpdatedAt())
                 .build();
     }
 
