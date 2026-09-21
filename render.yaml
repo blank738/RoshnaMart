@@ -13,6 +13,10 @@ services:
         value: 8080
       - key: ROSHNAMART_UPLOAD_DIR
         value: /app/uploads
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: ROSHNAMART_JWT_SECRET
+        generateValue: true
       - key: SPRING_DATASOURCE_URL
         sync: false
       - key: SPRING_DATASOURCE_USERNAME
@@ -32,3 +36,7 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
