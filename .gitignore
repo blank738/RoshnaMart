@@ -1,0 +1,28 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Maven & Build outputs
+target/
+**/target/
+*.class
+
+# Node & Frontend
+node_modules/
+**/node_modules/
+dist/
+dist-ssr/
+*.log
+
+# Uploads & Temp
+uploads/*
+!uploads/.gitkeep
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
