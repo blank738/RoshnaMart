@@ -191,3 +191,72 @@
 .category-card:hover img {
   transform: scale(1.08);
 }
+
+/* ==========================================================================
+   FLOATING AI CHATBOT WIDGET
+   ========================================================================== */
+.chat-widget-fixed-container {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+.chat-widget-trigger-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px 20px !important;
+  background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%) !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 10px 25px -4px rgba(5, 150, 105, 0.4), 0 4px 6px -2px rgba(5, 150, 105, 0.2) !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.chat-widget-trigger-btn:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 16px 32px -4px rgba(5, 150, 105, 0.5) !important;
+}
+
+.chat-widget-trigger-btn:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.chat-widget-window {
+  position: fixed !important;
+  bottom: 84px !important;
+  right: 24px !important;
+  width: 380px !important;
+  max-width: calc(100vw - 32px) !important;
+  height: 540px !important;
+  max-height: calc(100vh - 110px) !important;
+  background-color: #ffffff !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  z-index: 99999 !important;
+  animation: chatPanelSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes chatPanelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+

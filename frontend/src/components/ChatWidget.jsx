@@ -41,6 +41,19 @@ export const ChatWidget = () => {
     }
   }, [isOpen, messages, isLoading]);
 
+  const getChatEndpoint = () => {
+    // 1. If deployed on Render static site (SPA catch-all), route to Render backend directly
+    if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+      return 'https://roshnamart-backend.onrender.com/api/chat';
+    }
+    // 2. If API_BASE_URL is configured and different from current origin
+    if (API_BASE_URL && typeof window !== 'undefined' && !API_BASE_URL.includes(window.location.origin)) {
+      return `${API_BASE_URL}/api/chat`;
+    }
+    // 3. Otherwise use relative /api/chat (works with Vite proxy and Nginx reverse proxy)
+    return '/api/chat';
+  };
+
   const handleSendMessage = async (textToSend) => {
     const text = (textToSend || input).trim();
     if (!text || isLoading) return;
@@ -53,7 +66,7 @@ export const ChatWidget = () => {
     setErrorMessage('');
     const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Add user message
+    // Add user message to state
     const userMsg = {
       id: 'user-' + Date.now(),
       sender: 'user',
@@ -65,32 +78,32 @@ export const ChatWidget = () => {
     setIsLoading(true);
 
     try {
-      // Image 2 Constraint: calling fetch('/api/chat', POST {message})
-      let response;
-      try {
-        response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: text }),
-        });
-      } catch (err) {
-        // Fallback to API_BASE_URL if frontend is on separate origin without proxy
-        if (API_BASE_URL && API_BASE_URL !== window.location.origin) {
-          response = await fetch(`${API_BASE_URL}/api/chat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: text }),
-          });
-        } else {
-          throw err;
-        }
+      const endpoint = getChatEndpoint();
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('roshnamart_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const data = await response.json();
+      let response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message: text }),
+      });
+
+      // If relative fetch returned HTML because of SPA fallback route, retry with Render backend
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('text/html') && endpoint === '/api/chat') {
+        const fallbackUrl = API_BASE_URL
+          ? `${API_BASE_URL}/api/chat`
+          : 'https://roshnamart-backend.onrender.com/api/chat';
+        response = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ message: text }),
+        });
+      }
+
       const botTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       if (response.status === 429) {
@@ -107,6 +120,8 @@ export const ChatWidget = () => {
         ]);
         return;
       }
+
+      const data = await response.json();
 
       if (!response.ok) {
         const errorText = data.error || 'Unable to process your question at this moment.';
@@ -173,110 +188,291 @@ export const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {/* Floating Toggle Button */}
+    <div
+      className="chat-widget-fixed-container"
+      style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        zIndex: 99999,
+      }}
+    >
+      {/* Floating Toggle Button (Always at bottom-right) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
+          className="chat-widget-trigger-btn"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 20px',
+            background: 'linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%)',
+            color: '#ffffff',
+            borderRadius: '9999px',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 10px 25px -4px rgba(5, 150, 105, 0.4), 0 4px 6px -2px rgba(5, 150, 105, 0.2)',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
           aria-label="Open AI Shopping Assistant"
         >
-          <div className="relative">
-            <Bot className="w-6 h-6 animate-pulse" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full" />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Bot size={22} color="#ffffff" />
+            <span
+              style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                width: '10px',
+                height: '10px',
+                backgroundColor: '#34d399',
+                border: '2px solid #ffffff',
+                borderRadius: '50%',
+              }}
+            />
           </div>
-          <span className="font-semibold text-sm tracking-wide hidden sm:inline">Ask AI Assistant</span>
-          <Sparkles className="w-4 h-4 text-amber-300 opacity-90 group-hover:rotate-12 transition-transform" />
+          <span>Ask AI Assistant</span>
+          <Sparkles size={16} color="#fde047" />
         </button>
       )}
 
-      {/* Floating Chat Panel */}
+      {/* Floating Chat Window (Positioned bottom-right above trigger) */}
       {isOpen && (
-        <div className="w-[380px] max-w-[calc(100vw-2rem)] h-[540px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div
+          className="chat-widget-window"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '380px',
+            maxWidth: 'calc(100vw - 32px)',
+            height: '550px',
+            maxHeight: 'calc(100vh - 48px)',
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            zIndex: 99999,
+          }}
+        >
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white px-4 py-3.5 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                <Bot className="w-5 h-5 text-white" />
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%)',
+              color: '#ffffff',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                }}
+              >
+                <Bot size={22} color="#ffffff" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-sm leading-tight tracking-wide">RoshnaMart Assistant</h3>
-                  <span className="text-[10px] bg-amber-400/90 text-slate-900 font-bold px-1.5 py-0.2 rounded uppercase">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#ffffff' }}>
+                    RoshnaMart Assistant
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      backgroundColor: '#fbbf24',
+                      color: '#0f172a',
+                      fontWeight: 800,
+                      padding: '2px 5px',
+                      borderRadius: '4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     AI
                   </span>
                 </div>
-                <p className="text-[11px] text-blue-100/90 flex items-center gap-1.5 leading-none mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Online • Multi-Vendor Support
+                <p
+                  style={{
+                    margin: '3px 0 0 0',
+                    fontSize: '11px',
+                    color: '#d1fae5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#34d399',
+                      display: 'inline-block',
+                    }}
+                  />
+                  Online • Multi-Vendor Assistant
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <button
                 onClick={handleResetChat}
                 title="Restart Conversation"
-                className="p-1.5 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#d1fae5',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
                 aria-label="Restart conversation"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw size={16} />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 title="Close Chat"
-                className="p-1.5 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#d1fae5',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
                 aria-label="Close chat"
               >
-                <X className="w-5 h-5" />
+                <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Messages List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/50">
+          {/* Messages Stream */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '16px',
+              backgroundColor: '#f8fafc',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                }}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                    msg.sender === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-none shadow-sm'
+                  style={{
+                    maxWidth: '85%',
+                    padding: '10px 14px',
+                    borderRadius: '16px',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5',
+                    whiteSpace: 'pre-line',
+                    wordBreak: 'break-word',
+                    ...(msg.sender === 'user'
+                      ? {
+                          backgroundColor: '#059669',
+                          color: '#ffffff',
+                          borderBottomRightRadius: '4px',
+                          boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
+                        }
                       : msg.isError
-                      ? 'bg-rose-50 text-rose-800 border border-rose-200 rounded-bl-none shadow-sm'
-                      : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-none shadow-sm whitespace-pre-line'
-                  }`}
+                      ? {
+                          backgroundColor: '#fff1f2',
+                          color: '#9f1239',
+                          border: '1px solid #fecdd3',
+                          borderBottomLeftRadius: '4px',
+                        }
+                      : {
+                          backgroundColor: '#ffffff',
+                          color: '#1e293b',
+                          border: '1px solid #e2e8f0',
+                          borderBottomLeftRadius: '4px',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                        }),
+                  }}
                 >
                   {msg.text}
                 </div>
 
-                {/* Metadata timestamp & provider indicator */}
-                <div className="flex items-center gap-1.5 mt-1 px-1 text-[11px] text-slate-400">
+                {/* Metadata */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '4px',
+                    padding: '0 4px',
+                    fontSize: '11px',
+                    color: '#94a3b8',
+                  }}
+                >
                   <span>{msg.timestamp}</span>
                   {msg.cached && (
-                    <span className="inline-flex items-center gap-0.5 text-emerald-600 font-medium">
-                      • <CheckCircle2 className="w-3 h-3" /> cached
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        color: '#059669',
+                        fontWeight: 600,
+                      }}
+                    >
+                      • <CheckCircle2 size={12} /> cached
                     </span>
                   )}
-                  {msg.provider && !msg.cached && (
-                    <span className="text-slate-400">• {msg.provider}</span>
-                  )}
+                  {msg.provider && !msg.cached && <span>• {msg.provider}</span>}
                 </div>
               </div>
             ))}
 
             {/* Loading Indicator */}
             {isLoading && (
-              <div className="flex items-center gap-2 text-slate-500 bg-white border border-slate-200 rounded-2xl rounded-bl-none px-4 py-2.5 w-fit shadow-sm">
-                <Bot className="w-4 h-4 text-blue-600 animate-spin" />
-                <span className="text-xs font-medium">Thinking...</span>
-                <span className="flex gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce"></span>
-                </span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  padding: '8px 14px',
+                  borderRadius: '16px',
+                  borderBottomLeftRadius: '4px',
+                  fontSize: '12px',
+                  color: '#64748b',
+                  width: 'fit-content',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                }}
+              >
+                <Bot size={16} color="#059669" />
+                <span>Thinking...</span>
               </div>
             )}
 
@@ -284,31 +480,73 @@ export const ChatWidget = () => {
           </div>
 
           {/* Quick FAQ Suggestion Chips */}
-          <div className="px-3 py-2 bg-slate-100/80 border-t border-slate-200/80 overflow-x-auto scrollbar-none flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap pl-1">FAQ:</span>
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#f1f5f9',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>FAQ:</span>
             {SUGGESTIONS.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(item)}
                 disabled={isLoading}
-                className="text-xs bg-white text-blue-700 hover:bg-blue-50 active:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap transition-colors disabled:opacity-50"
+                style={{
+                  fontSize: '11px',
+                  backgroundColor: '#ffffff',
+                  color: '#047857',
+                  border: '1px solid #a7f3d0',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 500,
+                  transition: 'background 0.15s ease',
+                  flexShrink: 0,
+                }}
               >
                 {item}
               </button>
             ))}
           </div>
 
-          {/* Error / Rate limit notification */}
+          {/* Error Notice */}
           {errorMessage && (
-            <div className="px-3 py-1.5 bg-rose-50 border-t border-rose-200 flex items-center gap-2 text-xs text-rose-700">
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="truncate">{errorMessage}</span>
+            <div
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#fff1f2',
+                borderTop: '1px solid #fecdd3',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11px',
+                color: '#b91c1c',
+              }}
+            >
+              <AlertCircle size={14} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {errorMessage}
+              </span>
             </div>
           )}
 
-          {/* Input Area */}
-          <div className="p-3 bg-white border-t border-slate-200">
-            <div className="relative flex items-center">
+          {/* Input Box */}
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#ffffff',
+              borderTop: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <textarea
                 ref={inputRef}
                 value={input}
@@ -322,14 +560,35 @@ export const ChatWidget = () => {
                 placeholder="Ask about products, orders, returns..."
                 rows={1}
                 maxLength={MAX_INPUT_LENGTH + 10}
-                className="w-full resize-none rounded-xl border border-slate-300 pl-3.5 pr-20 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400"
+                style={{
+                  width: '100%',
+                  resize: 'none',
+                  borderRadius: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '9px 75px 9px 12px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                }}
               />
 
-              <div className="absolute right-2 flex items-center gap-1.5">
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
                 <span
-                  className={`text-[10px] font-mono ${
-                    input.length > MAX_INPUT_LENGTH ? 'text-rose-500 font-bold' : 'text-slate-400'
-                  }`}
+                  style={{
+                    fontSize: '10px',
+                    fontFamily: 'monospace',
+                    color: input.length > MAX_INPUT_LENGTH ? '#ef4444' : '#94a3b8',
+                    fontWeight: input.length > MAX_INPUT_LENGTH ? 700 : 400,
+                  }}
                 >
                   {input.length}/{MAX_INPUT_LENGTH}
                 </span>
@@ -337,10 +596,24 @@ export const ChatWidget = () => {
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={!input.trim() || input.length > MAX_INPUT_LENGTH || isLoading}
-                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    padding: '6px 10px',
+                    backgroundColor: '#059669',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor:
+                      !input.trim() || input.length > MAX_INPUT_LENGTH || isLoading
+                        ? 'not-allowed'
+                        : 'pointer',
+                    opacity: !input.trim() || input.length > MAX_INPUT_LENGTH || isLoading ? 0.45 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                   aria-label="Send message"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send size={15} />
                 </button>
               </div>
             </div>
