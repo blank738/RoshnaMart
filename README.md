@@ -23,6 +23,129 @@ A production-style multi-vendor e-commerce platform built with **Spring Boot 3.3
 - **Debounced Live Search**: Real-time product search suggestions in the navigation bar querying backend catalog indexes.
 - **Audit Logging**: Comprehensive administration log recording merchant approvals, suspensions, settings updates, and category changes.
 
+### 4. AI Chatbot Backend Proxy & Floating Chat Widget (Phase 3)
+- **Decoupled Provider Architecture**: `ChatProvider` interface (Section 17) decouples LLM logic from the servlet layer.
+- **Mock & Real Providers**:
+  - `MockChatProvider`: Canned FAQ answers for 10 core domain questions (products, orders, shipping, returns, payments, seller onboarding, tracking, coupons, support, multi-vendor isolation) with zero network calls.
+  - `GeminiChatProvider`: Real Google Gemini LLM provider enabled via `ai.chatbot.provider=gemini` and `GEMINI_API_KEY`.
+- **Strict Server-Side Key Storage**: API keys are stored exclusively in server environment variables or properties, never exposed to the client.
+- **ChatServlet (`POST /api/chat`)**:
+  - Validates input format and rejects blank requests (HTTP 400).
+  - Enforces input length cap of 500 characters.
+  - Enforces per-session rate limit (maximum 10 messages/minute, returning HTTP 429).
+  - In-memory per-session caching: identical repeated questions within a session return instantaneous cached responses.
+  - Outbound timeout and graceful error recovery: failures trigger a static degraded JSON fallback response rather than a 500 error page.
+  - Fixed server-side prompt template restricting chatbot scope strictly to RoshnaMart product/listing domain queries.
+- **Floating Chat Widget (`ChatWidget.jsx`)**:
+  - Sleek expandable floating UI widget present across the entire storefront.
+  - Quick FAQ suggestion pills for 1-click domain queries.
+  - Live character count counter (`x/500`) and rate limit warning indicator.
+  - Communicates directly via `fetch('/api/chat', POST {message})`.
+
+---
+
+## Architecture Diagrams
+
+### D1. Entity-Relationship Diagram (ER Diagram)
+
+```mermaid
+erDiagram
+    USERS ||--o{ ORDERS : "places"
+    USERS ||--o{ ADDRESSES : "owns"
+    USERS ||--o| CARTS : "has"
+    USERS ||--o{ WISHLISTS : "saves"
+    USERS ||--o{ REVIEWS : "writes"
+    USERS ||--o| SELLERS : "registers_as"
+
+    SELLERS ||--o{ PRODUCTS : "manages"
+    SELLERS ||--o{ ORDER_ITEMS : "fulfills"
+
+    CATEGORIES ||--o{ PRODUCTS : "classifies"
+    PRODUCTS ||--o{ PRODUCT_IMAGES : "contains"
+    PRODUCTS ||--o{ CART_ITEMS : "added_to"
+    PRODUCTS ||--o{ ORDER_ITEMS : "ordered_as"
+    PRODUCTS ||--o{ WISHLISTS : "bookmarked_in"
+    PRODUCTS ||--o{ REVIEWS : "reviewed_in"
+
+    CARTS ||--o{ CART_ITEMS : "holds"
+    ORDERS ||--o{ ORDER_ITEMS : "splits_into"
+    ORDERS ||--o| PAYMENTS : "paid_by"
+    COUPONS ||--o{ ORDERS : "applied_to"
+    ORDER_ITEMS ||--o| RETURN_REQUESTS : "initiates"
+```
+
+### D2. Use Case Diagram
+
+```mermaid
+flowchart LR
+    subgraph Actors
+        Buyer((Buyer))
+        Seller((Seller))
+        Admin((Admin))
+        Guest((Guest / Visitor))
+    end
+
+    subgraph RoshnaMart Platform
+        UC1[Browse Catalog & Search]
+        UC2[Ask AI Chatbot Assistant]
+        UC3[Manage Cart & Multi-Vendor Checkout]
+        UC4[Apply Coupons & Process Payment]
+        UC5[Track Orders & Request Returns]
+        UC6[Manage Products & Pricing]
+        UC7[Fulfill Seller Order Items]
+        UC8[View Sales Metrics & Analytics]
+        UC9[Approve/Suspend Sellers]
+        UC10[Configure Marketplace Settings]
+        UC11[Review Audit Logs]
+    end
+
+    Guest --> UC1
+    Guest --> UC2
+    Buyer --> UC1
+    Buyer --> UC2
+    Buyer --> UC3
+    Buyer --> UC4
+    Buyer --> UC5
+    Seller --> UC6
+    Seller --> UC7
+    Seller --> UC8
+    Admin --> UC9
+    Admin --> UC10
+    Admin --> UC11
+```
+
+### D3. Sequence Diagram (Multi-Vendor Place-Order Flow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Buyer
+    participant Frontend as React Client (Vite)
+    participant CartSvc as CartService
+    participant OrderSvc as OrderService
+    participant DB as MySQL Database
+    participant PaymentSvc as Payment Sandbox
+
+    Buyer->>Frontend: Click 'Place Order'
+    Frontend->>OrderSvc: POST /api/buyer/checkout (addressId, paymentMethod, couponCode)
+    Note over OrderSvc: Validate Cart & Stock
+    OrderSvc->>CartSvc: Retrieve Cart Items for Buyer
+    CartSvc->>DB: Query Cart & Items
+    DB-->>CartSvc: Vendor Grouped Items
+    Note over OrderSvc: Validate Coupon (if provided)
+    OrderSvc->>DB: Decrement Coupon Usage & Verify Minimum Spend
+    Note over OrderSvc: Calculate Multi-Vendor Split
+    OrderSvc->>OrderSvc: Split into OrderItems per Seller
+    OrderSvc->>OrderSvc: Calculate Item Platform Commissions & Net Earnings
+    OrderSvc->>PaymentSvc: Process Sandbox Payment (Card / UPI)
+    PaymentSvc-->>OrderSvc: Payment Status: SUCCESS
+    OrderSvc->>DB: Persist Parent Order & Child OrderItems (Atomic @Transactional)
+    OrderSvc->>DB: Decrement Product Inventory
+    OrderSvc->>DB: Clear Buyer Cart Items
+    OrderSvc-->>Frontend: Return Order Summary & Line Items
+    Frontend-->>Buyer: Redirect to /buyer/order-success/{id} with Confetti
+```
+
 ---
 
 ## Technology Stack
@@ -30,6 +153,7 @@ A production-style multi-vendor e-commerce platform built with **Spring Boot 3.3
 | Layer | Technologies |
 |---|---|
 | **Backend** | Java 17, Spring Boot 3.3.3, Spring Data JPA, Hibernate ORM, Spring Security, jjwt 0.12.6, Spring Validation, Lombok |
+| **AI Chatbot** | `ChatServlet`, `ChatProvider` Interface, `MockChatProvider`, `GeminiChatProvider`, In-Memory Session Cache, Rate Limiter |
 | **Database** | MySQL 8.4 Community Server, HikariCP Connection Pooling |
 | **Frontend** | React 19, Vite, Tailwind CSS, Lucide Icons, Axios, Canvas Confetti |
 | **API Docs** | SpringDoc OpenAPI / Swagger UI 2.6.0 |
@@ -66,26 +190,26 @@ Pre-seeded coupons for testing checkout discounts:
 RoshnaMart/
 ├── backend/
 │   ├── src/main/java/com/roshnamart/
-│   │   ├── config/             # SecurityConfig, DataInitializer, CorsConfig
+│   │   ├── config/             # SecurityConfig, ChatConfig, DataInitializer
 │   │   ├── controller/         # Admin, Auth, Buyer, Seller, Settings, Product, Category
 │   │   ├── dto/                # Request/Response Data Transfer Objects
 │   │   ├── entity/             # JPA Entities (User, Seller, Product, Order, Cart, Coupon, etc.)
 │   │   ├── repository/         # Spring Data JPA Repositories
 │   │   ├── security/           # JWT Token Provider, Filters, UserDetails
-│   │   └── service/            # Core business logic & isolation enforcement
+│   │   ├── service/            # Core business logic & isolation enforcement
+│   │   │   └── chat/           # ChatProvider, MockChatProvider, GeminiChatProvider
+│   │   └── servlet/            # ChatServlet (rate limiting, validation, session caching)
 │   └── pom.xml
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # Navbar, Footer, ConfirmModal, Toast, ErrorBoundary
+│   │   ├── components/         # Navbar, Footer, ChatWidget, ConfirmModal, Toast, Modal
 │   │   ├── context/            # AuthContext, CartContext, ToastContext
-│   │   ├── pages/
-│   │   │   ├── admin/          # Admin Dashboard, Sellers, Coupons, Orders, Settings, Logs
-│   │   │   ├── buyer/          # Cart, Checkout, OrderSuccess, Orders, Profile, Wishlist
-│   │   │   ├── seller/         # Seller Dashboard, Products, Orders, Analytics
-│   │   │   └── public/         # Home, Products, ProductDetail, Login, Register
-│   │   └── services/           # Axios service clients for all backend controllers
+│   │   ├── pages/              # Admin, Buyer, Seller, and Public storefront views
+│   │   └── services/           # Axios service clients
 │   ├── package.json
 │   └── vite.config.js
+├── CONTRIBUTING.md             # Complete setup steps from git clone to local instance
+├── RETRO.md                    # Sprint retrospective logs
 └── README.md
 ```
 
@@ -93,83 +217,37 @@ RoshnaMart/
 
 ## Getting Started
 
-### 1. Prerequisites
-- **Java 17+** (JDK 17)
-- **Apache Maven 3.8+**
-- **Node.js 18+** & npm
-- **MySQL 8.0+**
+Refer to [CONTRIBUTING.md](file:///d:/RoshnaMart/CONTRIBUTING.md) for full setup instructions, `.env` file management, and development guidelines.
 
-### 2. Database Configuration
-Ensure MySQL is running on `localhost:3306`. The application will automatically create `roshnamart_db` if it does not exist:
-```properties
-# backend/src/main/resources/application.yml
-url: jdbc:mysql://localhost:3306/roshnamart_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-username: root
-password: ""
-```
-
-### 3. Running the Backend
-```bash
-cd d:/RoshnaMart/backend
-mvn clean spring-boot:run
-```
-- Backend starts at: `http://localhost:8080`
-- Swagger UI / API Documentation: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/api-docs`
-
-### 4. Running the Frontend
-```bash
-cd d:/RoshnaMart/frontend
-npm install
-npm run dev
-```
-- Frontend starts at: `http://localhost:5173`
-
-### 5. Running with Docker (Recommended for Full Stack)
-Run the entire stack (MySQL 8 + Spring Boot Backend + React Frontend + Nginx) with a single command:
-```bash
-# Build and start all services
-docker compose up --build -d
-
-# View live container logs
-docker compose logs -f
-
-# Stop all services
-docker compose down
-```
-- Frontend (React via Nginx): `http://localhost`
-- Backend API & Swagger: `http://localhost:8080/swagger-ui.html`
-- MySQL Database: `localhost:3306`
+### Quick Start
+1. **Backend**:
+   ```bash
+   cd backend
+   mvn clean spring-boot:run
+   ```
+2. **Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Open `http://localhost:5173` to browse the store and chat with the AI assistant!
 
 ---
 
 ## Running Verification & Tests
 
 ### Backend Unit & Integration Tests
-Execute the Maven Surefire test suite:
 ```bash
-cd d:/RoshnaMart/backend
+cd backend
 mvn test
 ```
-All unit and integration tests validate:
+All 17 unit and integration tests validate:
 - Public marketplace settings retrieval
 - Role-based authentication and token generation
 - Multi-vendor cart isolation and transactional checkout
-
-### End-to-End Test Suite
-Run the automated PowerShell end-to-end test suite:
-```bash
-powershell -ExecutionPolicy Bypass -File d:/RoshnaMart/backend/src/test/e2e_test.ps1
-```
-The test verifies:
-1. Public settings retrieval (`GET /api/settings`)
-2. Live search suggestions (`GET /api/products?search=wireless`)
-3. Buyer login and address management (`/api/auth/login`, `/api/buyer/addresses`)
-4. Multi-vendor cart items addition from distinct sellers (`/api/buyer/cart/items`)
-5. Coupon code validation (`/api/buyer/coupons/validate?code=WELCOME10`)
-6. Atomic multi-vendor order placement (`/api/buyer/checkout`)
-7. Seller order isolation and status fulfillment (`/api/seller/orders`, `/api/seller/orders/items/{id}/status`)
-8. Admin dashboard metrics and merchant approval workflow (`/api/admin/sellers/{id}/approve`)
+- Order fulfillment status synchronization
+- `ChatServlet` input validation, 500-character cap, 10 msg/min rate limiting, in-memory caching, and degraded fallback
 
 ---
 
