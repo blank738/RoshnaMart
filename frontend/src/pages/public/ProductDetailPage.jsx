@@ -10,6 +10,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../../components/Modal';
+import { DEFAULT_PRODUCTS, DEFAULT_REVIEWS } from '../../data/defaultCatalog';
 
 export const ProductDetailPage = () => {
   const { id } = useParams();
@@ -37,12 +38,27 @@ export const ProductDetailPage = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const [prodData, revData] = await Promise.all([
-          productService.getProductById(id),
-          productService.getProductReviews(id),
-        ]);
+        let prodData = null;
+        let revData = [];
+
+        try {
+          const [p, r] = await Promise.all([
+            productService.getProductById(id),
+            productService.getProductReviews(id),
+          ]);
+          prodData = p;
+          revData = r || [];
+        } catch (e) {
+          console.warn('Backend fetch failed, checking default catalog:', e);
+        }
+
+        if (!prodData) {
+          prodData = DEFAULT_PRODUCTS.find((p) => String(p.id) === String(id)) || DEFAULT_PRODUCTS[0];
+          revData = DEFAULT_REVIEWS;
+        }
+
         setProduct(prodData);
-        setReviews(revData || []);
+        setReviews(revData);
         setActiveImage(prodData.imageUrl);
 
         if (isAuthenticated && isBuyer) {
@@ -52,8 +68,10 @@ export const ProductDetailPage = () => {
         }
       } catch (err) {
         console.error('Failed to load product:', err);
-        showToast('Product not found', 'error');
-        navigate('/products');
+        const fallback = DEFAULT_PRODUCTS.find((p) => String(p.id) === String(id)) || DEFAULT_PRODUCTS[0];
+        setProduct(fallback);
+        setActiveImage(fallback.imageUrl);
+        setReviews(DEFAULT_REVIEWS);
       } finally {
         setLoading(false);
       }

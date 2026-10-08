@@ -2,33 +2,49 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag, ArrowRight, ShieldCheck, Sparkles, Truck, RefreshCw,
-  Store, Star, Search, CheckCircle2, Award, Zap
+  Store, Star, Search, CheckCircle2, Award, Zap, Eye, ShoppingCart, Plus, Minus, Check
 } from 'lucide-react';
 import { productService } from '../../services/productService';
 import { ProductCard } from '../../components/ProductCard';
+import { Modal } from '../../components/Modal';
+import { useCart } from '../../context/CartContext';
+import { DEFAULT_CATEGORIES, DEFAULT_PRODUCTS } from '../../data/defaultCatalog';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [discountedProducts, setDiscountedProducts] = useState([]);
+  const { addToCart } = useCart();
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [featuredProducts, setFeaturedProducts] = useState(DEFAULT_PRODUCTS.slice(0, 8));
+  const [discountedProducts, setDiscountedProducts] = useState(
+    DEFAULT_PRODUCTS.filter((p) => p.discountPrice && p.discountPrice < p.price).slice(0, 4)
+  );
+  const [allCatalogProducts, setAllCatalogProducts] = useState(DEFAULT_PRODUCTS);
+  const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('ALL');
   const [heroSearch, setHeroSearch] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Quick View Modal state
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [quickViewQuantity, setQuickViewQuantity] = useState(1);
+  const [quickViewAdding, setQuickViewAdding] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [cats, featured, discounted] = await Promise.all([
+        const [cats, featured, discounted, all] = await Promise.all([
           productService.getCategories(),
           productService.getFeaturedProducts(),
           productService.getDiscountedProducts(),
+          productService.getProducts({ size: 12 }),
         ]);
-        setCategories(cats || []);
-        setFeaturedProducts(featured || []);
-        setDiscountedProducts(discounted || []);
+
+        if (cats && cats.length > 0) setCategories(cats);
+        if (featured && featured.length > 0) setFeaturedProducts(featured);
+        if (discounted && discounted.length > 0) setDiscountedProducts(discounted);
+        if (all?.content && all.content.length > 0) setAllCatalogProducts(all.content);
       } catch (err) {
-        console.error('Failed to load landing page data:', err);
+        console.warn('Backend unavailable, using default catalog on homepage:', err);
       } finally {
         setLoading(false);
       }
@@ -42,6 +58,10 @@ export const LandingPage = () => {
       navigate(`/products?search=${encodeURIComponent(heroSearch.trim())}`);
     }
   };
+
+  const displayedCatalogProducts = selectedCatalogCategory === 'ALL'
+    ? allCatalogProducts
+    : allCatalogProducts.filter((p) => String(p.categoryId) === String(selectedCatalogCategory));
 
   return (
     <div className="space-y-16 pb-16">
@@ -218,10 +238,81 @@ export const LandingPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickView={setQuickViewProduct}
+              />
             ))}
           </div>
         )}
+      </section>
+
+      {/* EXPLORE PRODUCT CATALOG ON HOMEPAGE */}
+      <section className="container">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">
+              <ShoppingBag size={14} />
+              <span>Full Marketplace Catalog</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Browse Products by Category
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Click &quot;View&quot; on any item to view complete product details and specifications right here on the homepage.
+            </p>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setSelectedCatalogCategory('ALL')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                selectedCatalogCategory === 'ALL'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              All Products ({allCatalogProducts.length})
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCatalogCategory(cat.id)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                  String(selectedCatalogCategory) === String(cat.id)
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {displayedCatalogProducts.slice(0, 8).map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onQuickView={setQuickViewProduct}
+            />
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            to={selectedCatalogCategory === 'ALL' ? '/products' : `/products?categoryId=${selectedCatalogCategory}`}
+            className="btn btn-outline border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-8 py-2.5 rounded-xl font-bold text-sm inline-flex items-center gap-2"
+          >
+            <span>Explore All {allCatalogProducts.length} Products in Store</span>
+            <ArrowRight size={16} />
+          </Link>
+        </div>
       </section>
 
       {/* SPECIAL OFFERS / DISCOUNT DEALS */}
@@ -248,7 +339,11 @@ export const LandingPage = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
                 {discountedProducts.slice(0, 4).map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onQuickView={setQuickViewProduct}
+                  />
                 ))}
               </div>
             </div>
@@ -315,6 +410,172 @@ export const LandingPage = () => {
           </Link>
         </div>
       </section>
+
+      {/* QUICK VIEW MODAL ON HOMEPAGE */}
+      {quickViewProduct && (
+        <Modal
+          isOpen={Boolean(quickViewProduct)}
+          onClose={() => setQuickViewProduct(null)}
+          title="Product Quick View"
+          maxWidth="max-w-2xl"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Image Preview */}
+            <div className="space-y-3">
+              <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner relative">
+                <img
+                  src={
+                    quickViewProduct.imageUrl ||
+                    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80'
+                  }
+                  alt={quickViewProduct.name}
+                  className="w-full h-full object-cover"
+                />
+                {quickViewProduct.discountPrice &&
+                  quickViewProduct.discountPrice < quickViewProduct.price && (
+                    <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-full uppercase shadow">
+                      {quickViewProduct.discountPercentage
+                        ? `${quickViewProduct.discountPercentage}% OFF`
+                        : 'DEAL'}
+                    </span>
+                  )}
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1">
+                  <span>{quickViewProduct.categoryName || 'Product'}</span>
+                  {quickViewProduct.sku && (
+                    <>
+                      <span>•</span>
+                      <span className="text-slate-400">
+                        SKU: {quickViewProduct.sku}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                  {quickViewProduct.name}
+                </h3>
+                {quickViewProduct.sellerBusinessName && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                    <Store size={13} className="text-emerald-600" />
+                    <span>Sold by {quickViewProduct.sellerBusinessName}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Price & Rating */}
+              <div className="flex items-center justify-between py-2 border-y border-slate-100">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-slate-900">
+                    ₹
+                    {(
+                      quickViewProduct.discountPrice || quickViewProduct.price
+                    ).toLocaleString('en-IN')}
+                  </span>
+                  {quickViewProduct.discountPrice &&
+                    quickViewProduct.discountPrice < quickViewProduct.price && (
+                      <span className="text-sm text-slate-400 line-through">
+                        ₹{Number(quickViewProduct.price).toLocaleString('en-IN')}
+                      </span>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-1 text-xs text-amber-500 font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60">
+                  <Star size={14} fill="currentColor" />
+                  <span>
+                    {quickViewProduct.rating
+                      ? Number(quickViewProduct.rating).toFixed(1)
+                      : '4.8'}
+                  </span>
+                  <span className="text-slate-400 font-normal">
+                    ({quickViewProduct.reviewCount || 12})
+                  </span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-xs text-slate-600 leading-relaxed line-clamp-4">
+                {quickViewProduct.description}
+              </p>
+
+              {/* Quantity & Actions */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Quantity</span>
+                  <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuickViewQuantity((q) => Math.max(1, q - 1))
+                      }
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-8 text-center text-xs font-bold text-slate-800">
+                      {quickViewQuantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuickViewQuantity((q) =>
+                          Math.min(quickViewProduct.quantity || 10, q + 1)
+                        )
+                      }
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setQuickViewAdding(true);
+                      await addToCart(quickViewProduct.id, quickViewQuantity);
+                      setQuickViewAdding(false);
+                      setQuickViewProduct(null);
+                    }}
+                    disabled={
+                      quickViewAdding ||
+                      quickViewProduct.quantity <= 0 ||
+                      quickViewProduct.status === 'OUT_OF_STOCK'
+                    }
+                    className="btn btn-primary flex-1 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    {quickViewAdding ? (
+                      <Check size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        <ShoppingCart size={15} />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = quickViewProduct.id;
+                      setQuickViewProduct(null);
+                      navigate(`/products/${id}`);
+                    }}
+                    className="btn btn-outline border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-500 py-2.5 px-4 rounded-xl font-bold text-xs"
+                  >
+                    Full Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

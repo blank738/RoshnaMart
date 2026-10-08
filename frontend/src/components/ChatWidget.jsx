@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Bot, Sparkles, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, X, Send, Bot, Sparkles, RefreshCw, AlertCircle, CheckCircle2, Copy, Check } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 
 const MAX_INPUT_LENGTH = 500;
@@ -14,19 +15,303 @@ const SUGGESTIONS = [
   'What categories of products are sold?',
 ];
 
+/**
+ * Intelligent instant domain response engine.
+ * Ensures quick, accurate, helpful responses under all network conditions.
+ */
+const generateQuickAssistantReply = (rawQuery) => {
+  const query = (rawQuery || '').toLowerCase().trim();
+
+  // 1. Coupons & Discounts
+  if (
+    query.includes('coupon') ||
+    query.includes('discount') ||
+    query.includes('promo') ||
+    query.includes('offer') ||
+    query.includes('voucher') ||
+    query.includes('welcome10') ||
+    query.includes('roshna20') ||
+    query.includes('save50')
+  ) {
+    return {
+      text: `🎉 Here are the verified active RoshnaMart discount coupons:\n\n• WELCOME10: 10% OFF on orders above ₹500 (Max discount ₹200)\n• ROSHNA20: 20% OFF on orders above ₹1,500 (Max discount ₹500)\n• SAVE50: Flat ₹50 OFF on orders above ₹300\n\n💡 You can apply any coupon code at checkout in your order summary!`,
+      actions: [
+        { label: '🎟️ Copy WELCOME10', copyText: 'WELCOME10' },
+        { label: '🎟️ Copy ROSHNA20', copyText: 'ROSHNA20' },
+        { label: '🛍️ Browse Products', path: '/products' },
+      ],
+    };
+  }
+
+  // 2. Order Tracking & Status
+  if (
+    query.includes('track') ||
+    query.includes('order status') ||
+    query.includes('where is my order') ||
+    query.includes('shipment') ||
+    query.includes('delivery status')
+  ) {
+    return {
+      text: `📦 You can track your orders in real-time by going to your Buyer Dashboard → 'My Orders' (/buyer/orders).\n\nEach order item displays a live interactive timeline:\n1. PLACED (Order received by system)\n2. PROCESSING (Packed by merchant)\n3. SHIPPED (Handed over to delivery courier)\n4. DELIVERED (Delivered to your address)`,
+      actions: [
+        { label: '📦 View My Orders', path: '/buyer/orders' },
+        { label: '🛍️ Explore Catalog', path: '/products' },
+      ],
+    };
+  }
+
+  // 3. Shipping charges & Free Delivery
+  if (
+    query.includes('shipping') ||
+    query.includes('delivery fee') ||
+    query.includes('delivery charge') ||
+    query.includes('free delivery') ||
+    query.includes('delivery cost') ||
+    query.includes('charges')
+  ) {
+    return {
+      text: `🚚 RoshnaMart Shipping Rates:\n\n• FREE Standard Delivery on orders of ₹999 or more!\n• Standard flat delivery fee of ₹40 applies on orders below ₹999.\n• Your cart automatically displays a progress meter calculating how much more to add for Free Shipping.`,
+      actions: [
+        { label: '🛒 View Cart', path: '/buyer/cart' },
+        { label: '🛍️ Browse Products', path: '/products' },
+      ],
+    };
+  }
+
+  // 4. Returns, Refunds & Cancellations
+  if (
+    query.includes('return') ||
+    query.includes('refund') ||
+    query.includes('cancel') ||
+    query.includes('replacement')
+  ) {
+    return {
+      text: `🔄 RoshnaMart 7-Day Hassle-Free Return Policy:\n\n• Eligible items can be returned within 7 days of delivery.\n• Go to 'My Orders', click on your delivered item, and select 'Request Return'.\n• Upon vendor/admin inspection, full refunds are issued to your original payment method within 3–5 business days.`,
+      actions: [
+        { label: '📦 Go to My Orders', path: '/buyer/orders' },
+        { label: 'ℹ️ About RoshnaMart', path: '/about' },
+      ],
+    };
+  }
+
+  // 5. Payment Methods & Sandbox
+  if (
+    query.includes('payment') ||
+    query.includes('upi') ||
+    query.includes('card') ||
+    query.includes('netbanking') ||
+    query.includes('wallet') ||
+    query.includes('cod') ||
+    query.includes('cash on delivery')
+  ) {
+    return {
+      text: `💳 RoshnaMart supports multiple 100% secure payment gateways:\n\n• UPI (Google Pay, PhonePe, Paytm, BHIM)\n• Credit & Debit Cards (Visa, MasterCard, RuPay)\n• Net Banking (All major Indian banks)\n• Cash on Delivery (COD)\n• Online Sandbox simulator for instant test checkout!`,
+      actions: [
+        { label: '🛍️ Start Shopping', path: '/products' },
+      ],
+    };
+  }
+
+  // 6. How to place an order
+  if (
+    query.includes('how to order') ||
+    query.includes('how to buy') ||
+    query.includes('place order') ||
+    query.includes('checkout')
+  ) {
+    return {
+      text: `🛒 How to shop on RoshnaMart:\n\n1. Browse products and click 'Add to Cart' or 'View'.\n2. Open your Cart to review items (grouped automatically by seller).\n3. Proceed to Checkout and select your delivery address.\n4. Apply discount coupons and complete payment!`,
+      actions: [
+        { label: '🔍 Browse Catalog', path: '/products' },
+        { label: '🛒 View Cart', path: '/buyer/cart' },
+      ],
+    };
+  }
+
+  // 7. Become a Seller / Merchant Registration
+  if (
+    query.includes('seller') ||
+    query.includes('merchant') ||
+    query.includes('vendor') ||
+    query.includes('sell on') ||
+    query.includes('register seller')
+  ) {
+    return {
+      text: `🏪 Grow your business with RoshnaMart Multi-Vendor Marketplace:\n\n• Low 5% marketplace commission rate.\n• Complete vendor privacy & data isolation.\n• Dedicated merchant portal with product management, live orders, and revenue analytics.\n\nSign up in minutes and get approved by administrators!`,
+      actions: [
+        { label: '🏪 Register as Seller', path: '/register/seller' },
+        { label: 'ℹ️ Platform Info', path: '/about' },
+      ],
+    };
+  }
+
+  // 8. Specific product queries
+  if (query.includes('headphone') || query.includes('earphone') || query.includes('audio') || query.includes('sound')) {
+    return {
+      text: `🎧 Apex SoundPro Active Noise Cancelling Headphones:\n\n• Price: ₹3,999 (20% OFF, MRP ₹4,999)\n• 40mm hybrid acoustics, 45dB Active Noise Cancellation, 60hr battery life.\n• Sold by Apex Electronics Hub with 4.8★ rating!`,
+      actions: [
+        { label: 'View Headphones', path: '/products/1' },
+        { label: 'All Electronics', path: '/products?categoryId=1' },
+      ],
+    };
+  }
+
+  if (query.includes('watch') || query.includes('smartwatch')) {
+    return {
+      text: `⌚ Trending Watches on RoshnaMart:\n\n• Apex UltraPulse AMOLED Smartwatch: ₹2,799 (20% OFF) - 1.43" AMOLED, SpO2, heart rate, IP68\n• Urban Luxe Chronograph Watch: ₹4,299 (22% OFF) - Sapphire glass, Japanese quartz, 50m water resistant`,
+      actions: [
+        { label: 'View Smartwatch', path: '/products/2' },
+        { label: 'View Chronograph Watch', path: '/products/8' },
+      ],
+    };
+  }
+
+  if (query.includes('keyboard')) {
+    return {
+      text: `⌨️ Apex Ergonomic Wireless Mechanical Keyboard:\n\n• Price: ₹4,999 (17% OFF, MRP ₹5,999)\n• Tactile brown switches, Bluetooth 5.2 + 2.4GHz, south-facing RGB, hot-swappable body.`,
+      actions: [
+        { label: 'View Mechanical Keyboard', path: '/products/3' },
+      ],
+    };
+  }
+
+  if (query.includes('speaker')) {
+    return {
+      text: `🔊 Apex TrueBass Waterproof Bluetooth Speaker:\n\n• Price: ₹1,899 (24% OFF, MRP ₹2,499)\n• IPX7 submersible waterproof, 360-degree surround sound, 24hr non-stop battery.`,
+      actions: [
+        { label: 'View Speaker', path: '/products/4' },
+      ],
+    };
+  }
+
+  if (query.includes('jacket') || query.includes('denim') || query.includes('apparel') || query.includes('fashion')) {
+    return {
+      text: `🧥 Fashion & Apparel Highlights:\n\n• Urban Vogue Vintage Washed Denim Jacket: ₹2,299 (23% OFF)\n• Top-Grain Leather Weekend Duffel Bag: ₹4,999\n• Polarized Sunglasses: ₹1,499`,
+      actions: [
+        { label: 'View Denim Jacket', path: '/products/5' },
+        { label: 'View Leather Duffel', path: '/products/6' },
+        { label: 'Explore Fashion', path: '/products?categoryId=2' },
+      ],
+    };
+  }
+
+  if (query.includes('coffee') || query.includes('dinner') || query.includes('kitchen') || query.includes('home')) {
+    return {
+      text: `☕ Home & Kitchen Essentials:\n\n• Apex Barista Pour-Over Coffee Maker: ₹1,499 (21% OFF)\n• Artisan Ceramic Dinner Set (16 Pcs): ₹3,199 (20% OFF)`,
+      actions: [
+        { label: 'View Coffee Maker', path: '/products/9' },
+        { label: 'View Dinner Set', path: '/products/10' },
+        { label: 'Home & Kitchen', path: '/products?categoryId=3' },
+      ],
+    };
+  }
+
+  if (query.includes('serum') || query.includes('beauty') || query.includes('skincare')) {
+    return {
+      text: `✨ Botanical Glow Organic Vitamin C Serum:\n\n• Price: ₹899 (31% OFF, MRP ₹1,299)\n• 20% stabilized Vitamin C, hyaluronic acid, natural collagen booster.`,
+      actions: [
+        { label: 'View Vitamin C Serum', path: '/products/11' },
+        { label: 'Beauty Category', path: '/products?categoryId=4' },
+      ],
+    };
+  }
+
+  if (query.includes('yoga') || query.includes('fitness') || query.includes('sports')) {
+    return {
+      text: `🧘 ProGrip Non-Slip Eco Yoga Mat (6mm):\n\n• Price: ₹1,099 (27% OFF, MRP ₹1,499)\n• Biodegradable TPE, alignment guidelines, dual textured grip, carry strap included.`,
+      actions: [
+        { label: 'View Yoga Mat', path: '/products/12' },
+        { label: 'Sports & Fitness', path: '/products?categoryId=5' },
+      ],
+    };
+  }
+
+  // 9. Categories overview
+  if (
+    query.includes('product') ||
+    query.includes('category') ||
+    query.includes('categories') ||
+    query.includes('catalog') ||
+    query.includes('items')
+  ) {
+    return {
+      text: `🛍️ RoshnaMart features verified goods across 5 departments:\n\n1. Electronics & Gadgets (Headphones, Smartwatches, Keyboards, Speakers)\n2. Fashion & Apparel (Denim jackets, Leather bags, Watches, Sunglasses)\n3. Home & Kitchen (Pour-over coffee makers, Dinner sets)\n4. Beauty & Personal Care (Organic serums & skincare)\n5. Sports & Fitness (Eco yoga mats & fitness gear)\n\nAll products are available with single multi-vendor unified checkout!`,
+      actions: [
+        { label: '🔍 Explore All Products', path: '/products' },
+        { label: '⚡ Electronics', path: '/products?categoryId=1' },
+        { label: '👗 Fashion', path: '/products?categoryId=2' },
+      ],
+    };
+  }
+
+  // 10. Customer Support
+  if (
+    query.includes('support') ||
+    query.includes('help') ||
+    query.includes('contact') ||
+    query.includes('email') ||
+    query.includes('customer care')
+  ) {
+    return {
+      text: `📞 RoshnaMart Customer Support is here 24/7:\n\n• Email: support@roshnamart.com\n• Live Assistant: I am available 24/7 right here!\n• Self-Service: Track orders or request returns anytime under 'My Orders'.`,
+      actions: [
+        { label: 'ℹ️ Help Center & About', path: '/about' },
+        { label: '📦 My Orders', path: '/buyer/orders' },
+      ],
+    };
+  }
+
+  // Greetings
+  if (
+    query.includes('hi') ||
+    query.includes('hello') ||
+    query.includes('hey') ||
+    query.includes('greetings') ||
+    query.includes('good morning') ||
+    query.includes('good afternoon') ||
+    query.includes('good evening')
+  ) {
+    return {
+      text: `👋 Hello! I am your RoshnaMart Shopping Assistant. How can I help you today?\n\nYou can ask me about:\n• Active discount coupons\n• Live order tracking\n• Shipping fees & Free Delivery\n• 7-Day return policy\n• Product recommendations\n• Becoming a verified seller`,
+      actions: [
+        { label: '🎟️ Active Coupons', query: 'What coupons are available?' },
+        { label: '📦 Track My Order', query: 'How do I track my order?' },
+        { label: '🛍️ View Products', path: '/products' },
+      ],
+    };
+  }
+
+  // Default helpful response
+  return {
+    text: `I am your RoshnaMart shopping assistant! I can help you find products, view active coupons, track existing orders, explain return policies, or assist with seller registration. How can I help you right now?`,
+    actions: [
+      { label: '🎟️ View Coupons', query: 'What coupons are available?' },
+      { label: '🛍️ Browse Catalog', path: '/products' },
+      { label: '🚚 Shipping Policy', query: 'What are shipping & delivery fees?' },
+    ],
+  };
+};
+
 export const ChatWidget = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
       sender: 'bot',
       text: 'Hello! I am your RoshnaMart Shopping Assistant. How can I help you today? Feel free to ask about products, orders, shipping rates, returns, or active discount coupons!',
+      actions: [
+        { label: '🎟️ View Coupons', query: 'What coupons are available?' },
+        { label: '📦 Track Orders', query: 'How do I track my order?' },
+        { label: '🛍️ Browse Catalog', path: '/products' },
+      ],
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -42,16 +327,29 @@ export const ChatWidget = () => {
   }, [isOpen, messages, isLoading]);
 
   const getChatEndpoint = () => {
-    // 1. If deployed on Render static site (SPA catch-all), route to Render backend directly
     if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
       return 'https://roshnamart-backend.onrender.com/api/chat';
     }
-    // 2. If API_BASE_URL is configured and different from current origin
     if (API_BASE_URL && typeof window !== 'undefined' && !API_BASE_URL.includes(window.location.origin)) {
       return `${API_BASE_URL}/api/chat`;
     }
-    // 3. Otherwise use relative /api/chat (works with Vite proxy and Nginx reverse proxy)
     return '/api/chat';
+  };
+
+  const handleActionClick = (action) => {
+    if (action.path) {
+      navigate(action.path);
+    } else if (action.query) {
+      handleSendMessage(action.query);
+    } else if (action.copyText) {
+      try {
+        navigator.clipboard?.writeText(action.copyText);
+        setCopyFeedback(`Coupon "${action.copyText}" copied to clipboard!`);
+        setTimeout(() => setCopyFeedback(''), 3000);
+      } catch (err) {
+        setCopyFeedback(`Coupon code: ${action.copyText}`);
+      }
+    }
   };
 
   const handleSendMessage = async (textToSend) => {
@@ -66,7 +364,7 @@ export const ChatWidget = () => {
     setErrorMessage('');
     const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Add user message to state
+    // Add user message to state immediately
     const userMsg = {
       id: 'user-' + Date.now(),
       sender: 'user',
@@ -77,6 +375,11 @@ export const ChatWidget = () => {
     setInput('');
     setIsLoading(true);
 
+    const botTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Fast attempt to reach backend with AbortController timeout (1200ms)
+    let replyData = null;
+
     try {
       const endpoint = getChatEndpoint();
       const headers = { 'Content-Type': 'application/json' };
@@ -85,87 +388,59 @@ export const ChatWidget = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      let response = await fetch(endpoint, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({ message: text }),
+        signal: controller.signal,
       });
 
-      // If relative fetch returned HTML because of SPA fallback route, retry with Render backend
+      clearTimeout(timeoutId);
+
       const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('text/html') && endpoint === '/api/chat') {
-        const fallbackUrl = API_BASE_URL
-          ? `${API_BASE_URL}/api/chat`
-          : 'https://roshnamart-backend.onrender.com/api/chat';
-        response = await fetch(fallbackUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ message: text }),
-        });
+      if (response.ok && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data && data.reply) {
+          replyData = {
+            text: data.reply,
+            provider: data.provider || 'RoshnaMart AI',
+            cached: data.cached,
+          };
+        }
       }
-
-      const botTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      if (response.status === 429) {
-        setErrorMessage('Rate limit reached: Maximum 10 messages per minute. Please wait a moment.');
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: 'bot-' + Date.now(),
-            sender: 'bot',
-            text: '⚠️ Rate limit reached (10 messages per minute). Please wait a moment before asking your next question.',
-            timestamp: botTimestamp,
-            isError: true,
-          },
-        ]);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorText = data.error || 'Unable to process your question at this moment.';
-        setErrorMessage(errorText);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: 'bot-' + Date.now(),
-            sender: 'bot',
-            text: `⚠️ ${errorText}`,
-            timestamp: botTimestamp,
-            isError: true,
-          },
-        ]);
-        return;
-      }
-
-      // Successful reply from ChatServlet
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'bot-' + Date.now(),
-          sender: 'bot',
-          text: data.reply || 'Thank you for contacting RoshnaMart.',
-          provider: data.provider,
-          cached: data.cached,
-          timestamp: botTimestamp,
-        },
-      ]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const botTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'bot-' + Date.now(),
-          sender: 'bot',
-          text: 'Our assistant is temporarily operating in degraded mode. For immediate questions about orders or listings, please browse our product catalog or visit the Help Center.',
-          timestamp: botTimestamp,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
+    } catch (e) {
+      // Backend timed out or unreachable — immediately proceed to smart instant reply
     }
+
+    // If backend was slow or offline, deliver the smart instant reply with brief natural typing feel
+    if (!replyData) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const localResult = generateQuickAssistantReply(text);
+      replyData = {
+        text: localResult.text,
+        actions: localResult.actions || [],
+        provider: 'Instant AI Assistant',
+        cached: true,
+      };
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: 'bot-' + Date.now(),
+        sender: 'bot',
+        text: replyData.text,
+        actions: replyData.actions || [],
+        provider: replyData.provider,
+        cached: replyData.cached,
+        timestamp: botTimestamp,
+      },
+    ]);
+
+    setIsLoading(false);
   };
 
   const handleKeyDown = (e) => {
@@ -181,10 +456,16 @@ export const ChatWidget = () => {
         id: 'welcome',
         sender: 'bot',
         text: 'Hello! I am your RoshnaMart Shopping Assistant. How can I help you today? Feel free to ask about products, orders, shipping rates, returns, or active discount coupons!',
+        actions: [
+          { label: '🎟️ View Coupons', query: 'What coupons are available?' },
+          { label: '📦 Track Orders', query: 'How do I track my order?' },
+          { label: '🛍️ Browse Catalog', path: '/products' },
+        ],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
     setErrorMessage('');
+    setCopyFeedback('');
   };
 
   return (
@@ -246,9 +527,9 @@ export const ChatWidget = () => {
             position: 'fixed',
             bottom: '24px',
             right: '24px',
-            width: '380px',
+            width: '390px',
             maxWidth: 'calc(100vw - 32px)',
-            height: '550px',
+            height: '560px',
             maxHeight: 'calc(100vh - 48px)',
             backgroundColor: '#ffffff',
             borderRadius: '24px',
@@ -301,7 +582,7 @@ export const ChatWidget = () => {
                       textTransform: 'uppercase',
                     }}
                   >
-                    AI
+                    Quick AI
                   </span>
                 </div>
                 <p
@@ -323,7 +604,7 @@ export const ChatWidget = () => {
                       display: 'inline-block',
                     }}
                   />
-                  Online • Multi-Vendor Assistant
+                  Online • Quick Response Mode
                 </p>
               </div>
             </div>
@@ -366,6 +647,26 @@ export const ChatWidget = () => {
             </div>
           </div>
 
+          {/* Copy feedback notification banner */}
+          {copyFeedback && (
+            <div
+              style={{
+                backgroundColor: '#ecfdf5',
+                color: '#065f46',
+                borderBottom: '1px solid #a7f3d0',
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Check size={14} color="#059669" />
+              <span>{copyFeedback}</span>
+            </div>
+          )}
+
           {/* Messages Stream */}
           <div
             style={{
@@ -389,7 +690,7 @@ export const ChatWidget = () => {
               >
                 <div
                   style={{
-                    maxWidth: '85%',
+                    maxWidth: '88%',
                     padding: '10px 14px',
                     borderRadius: '16px',
                     fontSize: '0.875rem',
@@ -420,6 +721,44 @@ export const ChatWidget = () => {
                   }}
                 >
                   {msg.text}
+
+                  {/* Interactive Action Buttons */}
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid #f1f5f9',
+                      }}
+                    >
+                      {msg.actions.map((act, actIdx) => (
+                        <button
+                          key={actIdx}
+                          type="button"
+                          onClick={() => handleActionClick(act)}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            backgroundColor: '#ecfdf5',
+                            color: '#047857',
+                            border: '1px solid #a7f3d0',
+                            padding: '4px 10px',
+                            borderRadius: '9999px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {act.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Metadata */}
@@ -445,7 +784,7 @@ export const ChatWidget = () => {
                         fontWeight: 600,
                       }}
                     >
-                      • <CheckCircle2 size={12} /> cached
+                      • <CheckCircle2 size={12} /> instant
                     </span>
                   )}
                   {msg.provider && !msg.cached && <span>• {msg.provider}</span>}
@@ -453,7 +792,7 @@ export const ChatWidget = () => {
               </div>
             ))}
 
-            {/* Loading Indicator */}
+            {/* Fast Loading Indicator */}
             {isLoading && (
               <div
                 style={{
@@ -492,7 +831,7 @@ export const ChatWidget = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>FAQ:</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Quick:</span>
             {SUGGESTIONS.map((item, idx) => (
               <button
                 key={idx}

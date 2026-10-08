@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Star,
   ShoppingCart,
   Heart,
   Store,
   Check,
+  Eye,
 } from 'lucide-react';
 
 import { useCart } from '../context/CartContext';
@@ -13,7 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import { orderService } from '../services/orderService';
 import { useToast } from '../context/ToastContext';
 
-export const ProductCard = ({ product }) => {
+export const ProductCard = ({ product, onQuickView }) => {
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isAuthenticated, isBuyer } = useAuth();
   const { showToast } = useToast();
@@ -50,6 +52,20 @@ export const ProductCard = ({ product }) => {
   const isOutOfStock =
     quantity <= 0 ||
     product.status === 'OUT_OF_STOCK';
+
+  // ------------------------------------------------------------
+  // VIEW / QUICK VIEW
+  // ------------------------------------------------------------
+
+  const handleViewClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onQuickView) {
+      onQuickView(product);
+    } else {
+      navigate(`/products/${product.id}`);
+    }
+  };
 
   // ------------------------------------------------------------
   // ADD TO CART
@@ -282,27 +298,40 @@ export const ProductCard = ({ product }) => {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || adding}
-            className={`btn btn-sm ${isOutOfStock
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                : 'btn-primary shadow-sm'
-              }`}
-          >
-            {adding ? (
-              <Check
-                size={16}
-                className="animate-spin"
-              />
-            ) : (
-              <>
-                <ShoppingCart size={14} />
-                <span>Add</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleViewClick}
+              className="btn btn-sm btn-outline border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50 flex items-center gap-1 px-2.5 rounded-xl font-semibold transition"
+              title="View product details"
+              aria-label="View product"
+            >
+              <Eye size={14} />
+              <span>View</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock || adding}
+              className={`btn btn-sm ${isOutOfStock
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'btn-primary shadow-sm'
+                }`}
+            >
+              {adding ? (
+                <Check
+                  size={16}
+                  className="animate-spin"
+                />
+              ) : (
+                <>
+                  <ShoppingCart size={14} />
+                  <span>Add</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

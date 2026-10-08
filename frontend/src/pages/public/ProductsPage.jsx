@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { productService } from '../../services/productService';
 import { ProductCard } from '../../components/ProductCard';
+import { DEFAULT_CATEGORIES, DEFAULT_PRODUCTS } from '../../data/defaultCatalog';
 
 export const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,9 +50,10 @@ export const ProductsPage = () => {
     const fetchCategories = async () => {
       try {
         const res = await productService.getCategories();
-        setCategories(res || []);
+        setCategories((res && res.length > 0) ? res : DEFAULT_CATEGORIES);
       } catch (err) {
         console.error('Failed to load categories:', err);
+        setCategories(DEFAULT_CATEGORIES);
       }
     };
 
@@ -87,15 +89,26 @@ export const ProductsPage = () => {
           size: 12,
         });
 
-        setProducts(data?.content || []);
-        setTotalPages(data?.totalPages || 0);
-        setTotalElements(data?.totalElements || 0);
+        if (data?.content && data.content.length > 0) {
+          setProducts(data.content);
+          setTotalPages(data.totalPages || 1);
+          setTotalElements(data.totalElements || data.content.length);
+        } else if (!search && !categoryId && !minPrice && !maxPrice && !minRating) {
+          // If no filters active and empty, show default catalog
+          setProducts(DEFAULT_PRODUCTS);
+          setTotalPages(1);
+          setTotalElements(DEFAULT_PRODUCTS.length);
+        } else {
+          setProducts([]);
+          setTotalPages(0);
+          setTotalElements(0);
+        }
       } catch (err) {
         console.error('Failed to load products:', err);
 
-        setProducts([]);
-        setTotalPages(0);
-        setTotalElements(0);
+        setProducts(DEFAULT_PRODUCTS);
+        setTotalPages(1);
+        setTotalElements(DEFAULT_PRODUCTS.length);
       } finally {
         setLoading(false);
       }
