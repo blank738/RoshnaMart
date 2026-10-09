@@ -505,11 +505,7 @@ export const Navbar = () => {
               )}
 
               <Link
-                to={
-                  isAuthenticated
-                    ? '/buyer/cart'
-                    : '/login'
-                }
+                to="/cart"
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-full font-semibold text-sm transition shadow-sm"
               >
                 <ShoppingCart size={18} />

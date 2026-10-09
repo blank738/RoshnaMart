@@ -538,7 +538,7 @@ export const LandingPage = () => {
                     type="button"
                     onClick={async () => {
                       setQuickViewAdding(true);
-                      await addToCart(quickViewProduct.id, quickViewQuantity);
+                      await addToCart(quickViewProduct.id, quickViewQuantity, quickViewProduct);
                       setQuickViewAdding(false);
                       setQuickViewProduct(null);
                     }}

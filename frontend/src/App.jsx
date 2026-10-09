@@ -63,6 +63,7 @@ function App() {
                 <Route path="/register/buyer" element={<RegisterBuyerPage />} />
                 <Route path="/register/seller" element={<RegisterSellerPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/cart" element={<CartPage />} />
 
                 {/* Buyer Protected Routes */}
                 <Route element={<BuyerRoute />}>

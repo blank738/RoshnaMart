@@ -102,12 +102,12 @@ export const ProductDetailPage = () => {
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
-    await addToCart(product.id, quantity);
+    await addToCart(product.id, quantity, product);
   };
 
   const handleBuyNow = async () => {
     if (isOutOfStock) return;
-    const added = await addToCart(product.id, quantity);
+    const added = await addToCart(product.id, quantity, product);
     if (added) {
       navigate('/buyer/checkout');
     }

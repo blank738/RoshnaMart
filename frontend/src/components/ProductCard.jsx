@@ -23,6 +23,7 @@ export const ProductCard = ({ product, onQuickView }) => {
   );
 
   const [adding, setAdding] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
   if (!product) {
@@ -67,7 +68,11 @@ export const ProductCard = ({ product, onQuickView }) => {
     setAdding(true);
 
     try {
-      await addToCart(product.id, 1);
+      const res = await addToCart(product.id, 1, product);
+      if (res !== false) {
+        setJustAdded(true);
+        setTimeout(() => setJustAdded(false), 1800);
+      }
     } catch (error) {
       console.error('Add to cart error:', error);
     } finally {
@@ -289,6 +294,8 @@ export const ProductCard = ({ product, onQuickView }) => {
             disabled={isOutOfStock || adding}
             className={`btn btn-sm ${isOutOfStock
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : justAdded
+                ? 'bg-emerald-700 text-white shadow-md'
                 : 'btn-primary shadow-sm'
               }`}
             title={isOutOfStock ? 'Out of stock' : 'Add to cart'}
@@ -299,6 +306,11 @@ export const ProductCard = ({ product, onQuickView }) => {
                 size={16}
                 className="animate-spin"
               />
+            ) : justAdded ? (
+              <>
+                <Check size={14} className="stroke-[3]" />
+                <span>Added!</span>
+              </>
             ) : (
               <>
                 <ShoppingCart size={14} />

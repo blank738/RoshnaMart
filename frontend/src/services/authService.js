@@ -73,7 +73,12 @@ const resolveDemoUser = (email, password) => {
     lowerEmail === 'buyer@roshnamart.com'
   ) {
     if (!lowerPass || lowerPass === 'buyer@123' || lowerPass === 'buyer123' || lowerPass === 'buyer') {
-      return { ...DEMO_BUYER, email: lowerEmail };
+      return {
+        ...DEMO_BUYER,
+        id: lowerEmail.includes('2') ? 5 : 4,
+        name: lowerEmail.includes('2') ? 'Sarah Miller' : 'John Doe',
+        email: lowerEmail,
+      };
     }
   }
 
