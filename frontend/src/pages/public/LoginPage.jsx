@@ -186,80 +186,85 @@ export const LoginPage = () => {
           </form>
 
           {/* Quick Demo Credentials for Fast Testing */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">
-              Quick Demo Accounts (Click to Autofill)
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginRole('BUYER');
-                  setEmail('buyer@roshnamart.com');
-                  setPassword('buyer@123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition"
-              >
-                <span className="block font-bold text-slate-900">Buyer 1</span>
-                <span className="block text-[10px] text-slate-500 truncate">buyer@roshnamart.com</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginRole('BUYER');
-                  setEmail('buyer2@roshnamart.com');
-                  setPassword('buyer@123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition"
-              >
-                <span className="block font-bold text-slate-900">Buyer 2</span>
-                <span className="block text-[10px] text-slate-500 truncate">buyer2@roshnamart.com</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginRole('SELLER');
-                  setEmail('seller@roshnamart.com');
-                  setPassword('seller@123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition"
-              >
-                <span className="block font-bold text-slate-900">Seller 1 (Electronics)</span>
-                <span className="block text-[10px] text-slate-500 truncate">seller@roshnamart.com</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginRole('SELLER');
-                  setEmail('fashionseller@roshnamart.com');
-                  setPassword('seller@123');
-                }}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-left transition"
-              >
-                <span className="block font-bold text-slate-900">Seller 2 (Fashion)</span>
-                <span className="block text-[10px] text-slate-500 truncate">fashionseller@roshnamart.com</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@roshnamart.com');
-                  setPassword('admin@123');
-                }}
-                className="col-span-2 p-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-left transition flex items-center justify-between"
-              >
-                <div>
-                  <span className="block font-bold text-xs">Admin Account</span>
-                  <span className="block text-[10px] text-slate-300">admin@roshnamart.com • pass: admin@123</span>
-                </div>
-                <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-black uppercase">
-                  Full Admin
-                </span>
-              </button>
+          <div className="pt-4 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                5 Sample Buyers & 5 Sample Sellers
+              </span>
+              <span className="text-[10px] text-emerald-600 font-bold">1-Click Autofill</span>
             </div>
+
+            {/* Buyer Demo Accounts (1 to 5) */}
+            <div className="space-y-1">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Sample Buyers (pass: buyer@123):
+              </p>
+              <div className="grid grid-cols-5 gap-1">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <button
+                    key={`b-${num}`}
+                    type="button"
+                    onClick={() => {
+                      setLoginRole('BUYER');
+                      setEmail(`buyer${num === 1 ? '' : num}@roshnamart.com`);
+                      setPassword('buyer@123');
+                    }}
+                    className="py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-center transition text-xs font-bold text-slate-700 cursor-pointer"
+                    title={`Autofill Buyer ${num}`}
+                  >
+                    Buyer {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Seller Demo Accounts (1 to 5) */}
+            <div className="space-y-1">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Sample Sellers (pass: seller@123):
+              </p>
+              <div className="grid grid-cols-5 gap-1">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <button
+                    key={`s-${num}`}
+                    type="button"
+                    onClick={() => {
+                      setLoginRole('SELLER');
+                      setEmail(
+                        num === 1
+                          ? 'seller@roshnamart.com'
+                          : num === 2
+                          ? 'fashionseller@roshnamart.com'
+                          : `seller${num}@roshnamart.com`
+                      );
+                      setPassword('seller@123');
+                    }}
+                    className="py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-center transition text-xs font-bold text-slate-700 cursor-pointer"
+                    title={`Autofill Seller ${num}`}
+                  >
+                    Seller {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Admin Demo Account */}
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@roshnamart.com');
+                setPassword('admin@123');
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-left transition flex items-center justify-between text-xs cursor-pointer"
+            >
+              <div>
+                <span className="font-bold">Admin Account</span>
+                <span className="text-[10px] text-slate-300 ml-2">admin@roshnamart.com • pass: admin@123</span>
+              </div>
+              <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-black uppercase">
+                Admin
+              </span>
+            </button>
           </div>
 
           {/* Registration Navigation Links */}
