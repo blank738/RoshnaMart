@@ -39,7 +39,34 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (userRepository.count() > 0) {
-            log.info("Database already initialized with users. Skipping seed data.");
+            if (userRepository.findByEmail("seller@roshnamart.com").isEmpty()) {
+                User sellerUser = User.builder()
+                        .name("Alex Rivera")
+                        .email("seller@roshnamart.com")
+                        .phone("9888811111")
+                        .password(passwordEncoder.encode("Seller@123"))
+                        .role(Role.ROLE_SELLER)
+                        .status(UserStatus.ACTIVE)
+                        .build();
+                sellerUser = userRepository.save(sellerUser);
+
+                Seller seller = Seller.builder()
+                        .user(sellerUser)
+                        .businessName("Apex Electronics Hub")
+                        .businessDescription("Premier authorized vendor for premium audio gear, smart gadgets, and high-end computer accessories.")
+                        .businessEmail("seller@roshnamart.com")
+                        .businessPhone("9888811111")
+                        .address("102 Silicon Valley Tech Park, Outer Ring Road")
+                        .city("Bangalore")
+                        .state("Karnataka")
+                        .pincode("560100")
+                        .verificationStatus(SellerVerificationStatus.APPROVED)
+                        .commissionPercentage(new BigDecimal("5.00"))
+                        .build();
+                sellerRepository.save(seller);
+                log.info("Initialized seller@roshnamart.com account");
+            }
+            log.info("Database already initialized with users. Skipping main seed data.");
             return;
         }
 
