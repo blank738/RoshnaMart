@@ -248,23 +248,7 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            {/* Admin Demo Account */}
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@roshnamart.com');
-                setPassword('admin@123');
-              }}
-              className="w-full py-2 px-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-left transition flex items-center justify-between text-xs cursor-pointer"
-            >
-              <div>
-                <span className="font-bold">Admin Account</span>
-                <span className="text-[10px] text-slate-300 ml-2">admin@roshnamart.com • pass: admin@123</span>
-              </div>
-              <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-black uppercase">
-                Admin
-              </span>
-            </button>
+            {/* Admin credentials are deliberately hidden from public UI per requirement */}
           </div>
 
           {/* Registration Navigation Links */}

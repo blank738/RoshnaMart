@@ -63,10 +63,10 @@ const resolveDemoUser = (email, password) => {
   const lowerEmail = email.toLowerCase().trim();
   const lowerPass = (password || '').toLowerCase().trim();
 
-  // Admin match
-  if (lowerEmail.includes('admin') || lowerEmail === 'admin@roshnamart.com') {
+  // Admin match: Single default admin account only
+  if (lowerEmail === 'admin@roshnamart.com') {
     if (!lowerPass || lowerPass === 'admin@123' || lowerPass === 'admin123' || lowerPass === 'admin') {
-      return { ...DEMO_ADMIN, email: lowerEmail };
+      return { ...DEMO_ADMIN, email: 'admin@roshnamart.com' };
     }
   }
 
@@ -128,15 +128,28 @@ export const authService = {
     const rawPassword = credentials?.password || '';
     const demoUser = resolveDemoUser(rawEmail, rawPassword);
 
-    // If demo user matched, try backend with a 1.2s fast race, otherwise resolve demo user immediately
     try {
       const backendPromise = api.post('/api/auth/login', credentials);
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Backend timeout')), 1200)
+        setTimeout(() => reject(new Error('Backend timeout')), 1500)
       );
       const response = await Promise.race([backendPromise, timeoutPromise]);
       return response.data;
     } catch (err) {
+      // If backend rejected due to password capitalization (e.g. buyer@123 vs Buyer@123)
+      if (rawPassword && /^[a-z]/.test(rawPassword)) {
+        try {
+          const capitalizedPassword = rawPassword.charAt(0).toUpperCase() + rawPassword.slice(1);
+          const retryRes = await api.post('/api/auth/login', {
+            email: rawEmail,
+            password: capitalizedPassword,
+          });
+          if (retryRes && retryRes.data) {
+            return retryRes.data;
+          }
+        } catch (_) {}
+      }
+
       if (demoUser) {
         return demoUser;
       }

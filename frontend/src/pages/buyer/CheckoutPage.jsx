@@ -129,7 +129,7 @@ export const CheckoutPage = () => {
         streetAddress: newAddress.streetAddress?.trim() || newAddress.addressLine?.trim() || '',
       };
       const created = await orderService.addAddress(payload);
-      setAddresses((prev) => [...prev, created]);
+      setAddresses((prev) => [created, ...prev.filter((a) => a.id !== created.id)]);
       setSelectedAddressId(created.id);
       setIsAddressModalOpen(false);
       setNewAddress({

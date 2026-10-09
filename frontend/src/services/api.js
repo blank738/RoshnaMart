@@ -38,6 +38,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      const token = localStorage.getItem('roshnamart_token');
+      // If user is operating under a demo token, do not clear local session
+      if (token && token.startsWith('demo_')) {
+        return Promise.reject(error);
+      }
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
         localStorage.removeItem('roshnamart_token');
